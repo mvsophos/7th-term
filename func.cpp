@@ -3,8 +3,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include "head.h"
+// для записи в файл
+#include <iostream>
+#include <fstream>
 
-#define eps 1e-15
+#define eps 1.e-15
 
 enum class mode_my_mode {
 	rho_v_stepeny, C_rho
@@ -12,34 +16,137 @@ enum class mode_my_mode {
 
 double gamma_ = 1.4;
 double C = 1;
-double mu = 0.001;
+double mu = 0.01;
 
-double u(double time, double x) {
+double zero(double, double, int) {
+	return 0;
+}
+
+double u(double time, double x, int mode) {
+	switch (mode) {
+	case 0:
+		return cos(M_PI * time) * sin(M_PI * x);
+	case 1:
+		return 0;
+	case 2:
+		return 1 - 2 * time;
+	case 3:
+		return 1;
+	case 4:
+		return 0.5 - x;
+	case 5:
+		return 0.5 - x;
+	case 6:
+		return 0.5;
+	case 7:
+		return u_head(time, x);
+	case 8:
+		return exp(time) * cos(2 * M_PI * x);
+
+	default:
+		return 0;
+		break;
+	}
 	//return cos(2 * M_PI * time) * sin(4 * M_PI * x);
-	//return cos(M_PI * time) * sin(M_PI * x);		// было вот это для f
-	return 1;
 }
 
-double r(double time, double x) {
+double r(double time, double x, int mode) {
+	switch (mode) {
+	case 0:
+		return exp(time) * (cos(M_PI * x) + 1.5);
+	case 1:
+		return 1 + x;
+	case 2:
+		return 2 - time;
+	case 3:
+		return 1 + time * x;
+	case 4:
+		return 1;
+	case 5:
+		return 1;
+	case 6:
+		return (0.2 <= x && x <= 0.4) ? 1 : 0;
+	case 7:
+		return rho(time, x);
+	case 8:
+		return exp(2 * time) * (cos(3 * M_PI * x) + 1.5);
+
+	default:
+		return 0;
+		break;
+	}
 	//return exp(time) * (cos(3 * M_PI * x) + 1.5);
-	//return exp(time) * (cos(M_PI * x) + 1.5);		// было вот это для f
-	//return x + 1 - time;
-	return 1;
 }
 
-double f_0(double time, double x) {
-	return r(time, x) * (1 + M_PI * cos(M_PI * time) * cos(M_PI * x)) - M_PI * u(time, x) * exp(time) * sin(M_PI * x);
+double f_1(double time, double x, int mode) {
+	switch (mode) {
+	case 0:
+			return r(time, x, mode) * (1 + M_PI * cos(M_PI * time) * cos(M_PI * x)) - M_PI * u(time, x, mode) * exp(time) * sin(M_PI * x);
+	case 1:
+		return 0;
+	case 2:
+		return -1;
+	case 3:
+		return x + time;
+	case 4:
+		return -1;
+	case 5:
+		return -1;
+	case 6:
+		return 0;
+	case 7:
+		return f0(time, x);
+	case 8:
+		return 2 * exp(2 * time) * (cos(3 * M_PI * x) + 1.5) - exp(time) * (2 * M_PI * sin(2 * M_PI * x) * exp(2 * time) * (cos(3 * M_PI * x) + 1.5)) - exp(3 * time) * 3 * M_PI * cos(2 * M_PI * x) * sin(3 * M_PI * x);
+
+	default:
+		return 0;
+		break;
+	}
 }
 
-double f(double time, double x) {
-	/* return (-gamma_ * M_PI * exp(time) * sin(M_PI * x) + 
+double f_2(double time, double x, int mode, mode_my_mode rezhym) {
+	switch (mode) {
+	case 0:
+		if (rezhym == mode_my_mode::C_rho) return (-gamma_ * M_PI * exp(time) * sin(M_PI * x) + 
 			mu * M_PI * M_PI * cos(M_PI * time) * sin(M_PI * x) +
 			M_PI * exp(time) * (cos(M_PI * x) + 1.5) * 
 			cos(M_PI * time) * cos(M_PI * x) * cos(M_PI * time) * sin(M_PI * x) -
 			M_PI * exp(time) * sin(M_PI * time) * sin(M_PI * x) * (cos(M_PI * x) + 1.5)) / 
-		(exp(time) * (cos(M_PI * x) + 1.5)); */
-	//return C / (x + 1 - time);
-	return 0;
+			(exp(time) * (cos(M_PI * x) + 1.5));
+		else ;
+	case 1:
+		if (rezhym == mode_my_mode::C_rho) return C / (1 + x);
+		else return gamma_ / pow(1 + x, gamma_ - 1);
+	case 2:
+		return (4 * time - 5) / (2 - time);
+	case 3:
+		if (rezhym == mode_my_mode::C_rho) return (x + time + C * time) / (time * x + 1);
+		else return (x + time + gamma_ * time * pow(1 + time * x, gamma_ - 1)) / (time * x + 1);
+	case 4:
+		return (-1 + 2 * x - 2 * mu) / 1;
+	case 5:				// этот кейс такой же, но считается по другой формуле (по второй формуле)
+		return (x - 0.5 - 2 * mu) / 1;
+	case 6:
+		return 0;
+	case 7:
+		return f(time, x, mu, gamma_);
+	case 8:
+		if (rezhym == mode_my_mode::C_rho) return ( 	(cos(3 * M_PI * x) + 1.5) * exp(time) * cos(2 * M_PI * x) * exp(2 * time) 
+						- 2 * M_PI * exp(4 * time) * cos(2 * M_PI * x) * (cos(3 * M_PI * x) + 1.5) * sin(2 * M_PI * x) 
+						+ C * 3 * M_PI * (-sin(3 * M_PI * x)) * exp(2 * time) 
+						+ mu * 4 * M_PI * M_PI * cos(2 * M_PI * x) * exp(time) ) 
+						/ (exp(2 * time) * (cos(3 * M_PI * x) + 1.5));
+		else return ( 	(cos(3 * M_PI * x) + 1.5) * exp(time) * cos(2 * M_PI * x) * exp(2 * time) 
+						- 2 * M_PI * exp(4 * time) * cos(2 * M_PI * x) * (cos(3 * M_PI * x) + 1.5) * sin(2 * M_PI * x) 
+						+ exp(2 * time) * gamma_ * pow((cos(3 * M_PI * x) + 1.5), gamma_ - 1) * 3 * M_PI * (-sin(3 * M_PI * x)) 
+						+ mu * 4 * M_PI * M_PI * cos(2 * M_PI * x) * exp(time) ) 
+						/ (exp(2 * time) * (cos(3 * M_PI * x) + 1.5));
+
+	default:
+		return 0;
+		break;
+	}
 }
 
 /* inline double f_exp(double t, double x) {
@@ -98,15 +205,15 @@ double f(double time, double x) {
 } */
 
 // функция задающая сами значения массива, которые используются для задания матрицы
-void set_array_H (double *H, double (*r)(double, double), double time, double h, int M) {
+void set_array_H (double *H, double time, double h, int M, int mode) {
 	for (int i = 0; i < M; i++) {
-		H[i] = r(time, (i + 0.5) * h);
+		H[i] = r(time, (i + 0.5) * h, mode);
 	}
 }
 
-void set_array_V (double *V, double (*u)(double, double), double time, double h, int M) {
+void set_array_V (double *V, double time, double h, int M, int mode) {
 	for (int i = 0; i <= M; i++) {
-		V[i] = u(time, i * h);
+		V[i] = u(time, i * h, mode);
 	}
 }
 
@@ -114,12 +221,28 @@ void print_array(double *array, int n) {
 	for (int i = 0; i < n; i++) printf(" %3.7le ", array[i]);
 	printf("\n");
 }
-void print_array__V(double *array, double time, int n) {
-	for (int i = 0; i < n; i++) printf(" %3.7le ", array[i] - u(time, i / (n - 1)));
+void print_array__V(double *array, double time, int n, int mode) {
+	for (int i = 0; i < n; i++) printf(" %3.7le ", array[i] - u(time, i / (n - 1), mode));
 	printf("\n");
 }
-void print_array__H(double *array, double time, int n) {
-	for (int i = 0; i < n; i++) printf(" %3.7le ", array[i] - r(time, (i + 0.5) / n));
+void print_array__H(double *array, double time, int n, int mode) {
+	for (int i = 0; i < n; i++) printf(" %3.7le ", array[i] - r(time, (i + 0.5) / n, mode));
+	printf("\n");
+}
+
+void print_res_H_like_gnu(double *z, double (*f)(double, double, int), double time_x, double h, int M, int mode) {
+	for (int i = 0; i < M; i++) {
+		//printf("%lf  %lf  %lf \n", time_x, i + h / 2, fabs(z[i] - f(time_x, i + h / 2, mode)));
+		printf("%lf  %lf  %lf \n", time_x, (i + 0.5) * h, z[i] - f(time_x, (i + 0.5) * h, mode));
+	}
+	printf("\n");
+}
+
+void print_res_V_like_gnu(double *z, double (*f)(double, double, int), double time_x, double h, int M, int mode) {
+	for (int i = 0; i < M; i++) {
+		//printf("%lf  %lf  %lf \n", time_x, i + h / 2, fabs(z[i] - f(time_x, i + h / 2, mode)));
+		printf("%lf  %lf  %lf \n", time_x, i * h, z[i] - f(time_x, i * h, mode));
+	}
 	printf("\n");
 }
 
@@ -171,23 +294,39 @@ void solver (double *p_half, double *phalf, double *phalf1, double *pprev, int N
 
 
 // функция задающая элементы матрицы под, на и над главной диагональю, n - это размер матрицы
-int set_matrix_H (double *H_under, double *H_main, double *H_above, double *V, double *right_part, double *H_prev, double tau, double h, int M) {
-	for (int i = 0; i < M; i++) {
-		H_above[i] = (i == M - 1) ? 0 : 0.5 * tau / h * (V[i + 1] - fabs(V[i + 1]));
-		H_main[i]  = 1 + 0.5 * tau / h * (V[i + 1] + fabs(V[i + 1]) - V[i] + fabs(V[i]));
-		H_under[i] = (i == 0) ? 0 : (-0.5) * tau / h * (V[i] + fabs(V[i]));
+int set_matrix_H (double *H_under, double *H_main, double *H_above, double *V, double *right_part, double *H_prev, double tau, double h, int timestep, int M, int mode) {
+	H_above[0] = 0.5 * (V[1] - fabs(V[1])) / h;
+	H_main[0]  = 1 / tau + 0.5 * (V[1] + fabs(V[1])) / h;
+	H_under[0] = 0;
+	right_part[0] = H_prev[0] / tau + f_1((timestep) * tau, 0.5 * h, mode);
 
-		right_part[i] = H_prev[i];
+	for (int i = 1; i <= M - 2; i++) {
+		H_above[i] = 0.5 * 1 / h * (V[i + 1] - fabs(V[i + 1]));
+		H_main[i]  = 1 / tau  +  0.5 * 1 / h * (V[i + 1] + fabs(V[i + 1]) - V[i] + fabs(V[i]));
+		H_under[i] = (-0.5) * 1 / h * (V[i] + fabs(V[i]));
+
+		right_part[i] = H_prev[i] / tau + f_1((timestep) * tau, (i + 0.5) * h, mode);
 	}
+
+	H_above[M - 1] = 0;
+	H_main[M - 1]  = 1 / tau + 0.5 * (-V[M - 1] + fabs(V[M - 1])) / h;
+	H_under[M - 1] = (-0.5) * (V[M - 1] + fabs(V[M - 1])) / h;
+	right_part[M - 1] = H_prev[M - 1] / tau + f_1((timestep) * tau, (M - 0.5) * h, mode);
 
 	// далее решаем прогонкой, а в правой части получаем решение
 	solver(H_under, H_main, H_above, right_part, M);
+	//right_part[0] = H_prev[0];
+	//right_part[M - 1] = H_prev[M - 1];
 	//print_array(right_part, M);
 	// далее пишем 0 в края
 	return 0;
 }
 
-int set_matrix_V (double *V_under, double *V_main, double *V_above, double *H, double *right_part, double *H_prev, double *V_prev, double (*f)(double, double), double tau, double h, int M, int time_step, mode_my_mode mode) {
+int set_matrix_V (double *V_under, double *V_main, double *V_above, double *H, double *right_part, double *H_prev, double *V_prev, double tau, double h, int M, int time_step, int mode,mode_my_mode rezhym) {
+	V_above[0] = 0;
+	V_main[0] = 1;
+	V_under[0] = 0;
+	right_part[0] = 0;
 	for (int i = 1; i < M; i++) {
 		// если сумма равна 0, то надо задать коэффициент 1, а числа слева и справа равны 0
 		if (fabs(H[i] + H[i - 1]) < eps) {
@@ -197,60 +336,101 @@ int set_matrix_V (double *V_under, double *V_main, double *V_above, double *H, d
 			right_part[i] = 0;
 		}
 		else {
-			V_above[i] =  0.5 * (H[i] + H[i - 1]) * (tau / h) * 0.5 * (V_prev[i] - fabs(V_prev[i]))  -  mu * tau / (h * h);
-			V_main[i]  =  0.5 * (H[i] + H[i - 1]) * (1  +  (tau / h) * fabs(V_prev[i]))              +  2 * mu * tau / (h * h);
-			V_under[i] = -0.5 * (H[i] + H[i - 1]) * (tau / h) * 0.5 * (V_prev[i] + fabs(V_prev[i]))  -  mu * tau / (h * h);
+			V_above[i] =  0.5 * (H[i] + H[i - 1]) * (1 / h) * 0.5 * (V_prev[i] - fabs(V_prev[i]))  -  mu * 1 / (h * h);
+			V_main[i]  =  0.5 * (H[i] + H[i - 1]) * (1 / tau  +  (1 / h) * fabs(V_prev[i]))        +  2 * mu * 1 / (h * h);
+			V_under[i] = -0.5 * (H[i] + H[i - 1]) * (1 / h) * 0.5 * (V_prev[i] + fabs(V_prev[i]))  -  mu * 1 / (h * h);
 
-			right_part[i] = 0.5 * (H[i] + H[i - 1]) * V_prev[i]  +  0.5 * tau * (H[i] + H[i - 1]) * f((time_step + 1) * tau, i * h);			////////////////////////////////// тут надо правильно установить функцию f
-			
-			if (mode == mode_my_mode::rho_v_stepeny) {
-				right_part[i] -= (gamma_ / (gamma_ - 1)) * (tau / h) * 0.5 * (H[i] + H[i - 1]) * (pow(H[i], gamma_ - 1) - pow(H[i - 1], gamma_ - 1));
+			if (rezhym == mode_my_mode::rho_v_stepeny) {
+				right_part[i] = 0.5 * (H[i] + H[i - 1]) * V_prev[i] / tau  +  0.5 * 1 * (H[i] + H[i - 1]) * f_2((time_step) * tau, i * h, mode, mode_my_mode::rho_v_stepeny) - (gamma_ / (gamma_ - 1)) * (1 / h) * 0.5 * (H[i] + H[i - 1]) * (pow(H[i], gamma_ - 1) - pow(H[i - 1], gamma_ - 1));
 			}
-			else if (mode == mode_my_mode::C_rho) {
-				right_part[i] -= C * (tau / h) * (H[i] - H[i - 1]);
+			else if (rezhym == mode_my_mode::C_rho) {
+				right_part[i] = 0.5 * (H[i] + H[i - 1]) * V_prev[i] / tau  +  0.5 * 1 * (H[i] + H[i - 1]) * f_2((time_step) * tau, i * h, mode, mode_my_mode::C_rho) - C * (1 / h) * (H[i] - H[i - 1]);
 			}
 		}
 	}
+	V_above[M] = 0;
+	V_main[M] = 1;
+	V_under[M] = 0;
+	right_part[M] = 0;
 	// тут решаем
-	solver(V_under + 1, V_main + 1, V_above + 1, right_part + 1, M - 1);
-	right_part[0] = 0; right_part[M] = 0;
+	solver(V_under, V_main, V_above, right_part, M + 1);
+	//right_part[0] = 0; right_part[M] = 0;
 	return 0;
 }
 
-void residuals(double (*rho)(double, double), double *H, double time, double h, int M, double &r1) {
-	r1 = fabs(H[0] - rho(time, 0.5 * h));
+double L2_norm (double *v, double h, int st, int M)
+{
+  double scal = 0.;
+  //int size = static_cast<int> (v.size ());
+  for (int i = st; i < M - 1; i++) 		scal += v[i] * v[i];
+  for (int i = 0; i < st; i++) 			scal += (1./2. * v[i] * v[i]);
+  scal += (v[M - 1] * v[M - 1] / 2.);
+  return sqrt (h * scal);
+}
+double W2_1h_norm (double *v, double h, int st, int M)
+{
+  double first = L2_norm (v, h, st, M);
+  double second = 0.;
+  //int size = static_cast<int> (v.size ());
+  for (int i = 1; i < M; i++)
+    {
+      second += (v[i] - v[i - 1]) * (v[i] - v[i - 1]);
+    }
+  second /= h;
+  return sqrt (first * first + second);
+}
+
+
+void residuals(double (*rho_func)(double, double, int), double *H, double time, double h, int M, int mode, double &r1, double &r2, double &r3, double &r4) {
+	r1 = fabs(H[0] - rho_func(time, 0.5 * h, mode));
+	double buf;
 	for (int i = 1; i < M; i++) {
-		r1 = fmax(r1, fabs(H[i] - rho(time, (i + 0.5) * h)));
+		buf = H[i] - rho_func(time, (i + 0.5) * h, mode);
+		r1 = fmax(r1, fabs(buf));
+		r2 += buf;
+
 	}
+	r2 = sqrt(r2 * h);
+	r3 = L2_norm (H, h, 0, M);
+	r4 = W2_1h_norm (H, h, 0, M);
 }
 
 int main(int argc, char *argv[]) {
 	// задаем начальные данные из введенных значений
-	int M, N, mode;			// M = шагов по пространству, N = шагов по времени, mode = 0 или 1
+	int M, N, rezhim, mode;	// M = шагов по пространству, N = шагов по времени, mode = 0 или 1
 	double h, tau;			// h - шаг по пространству, tau - шфг по времени
 	double x, time;			// x - длина отрезка (считаем что он равен 1), time - временной отрезок
+	double length_on_space = 1.0, length_on_time = 1.0;
 	mode_my_mode rezh;
 
-	if (!(argc == 6 
+	if (!(argc == 7 
 		&& sscanf(argv[1], "%lf", &x) == 1
 		&& sscanf(argv[2], "%lf", &time) == 1
 		&& sscanf(argv[3], "%d",  &M) == 1
 		&& sscanf(argv[4], "%d",  &N) == 1
-		&& sscanf(argv[5], "%d",  &mode) == 1
+		&& sscanf(argv[5], "%d",  &rezhim) == 1
+		&& sscanf(argv[6], "%d",  &mode) == 1
 		&& x > eps && time > eps && N >= 1 && M >= 1 
-		&& fabs(mode - 0.5) < 0.6))
+		&& fabs(rezhim - 0.5) < 0.6))
 		{
-			printf("Usage: ./a.out  x  time  M  N  mode\n");
+			printf("# Usage: ./a.out  x  time  M  N  rezhim  mode\n");
 			return -1;
 		}
 
+	//x = length_on_space;
+	//time = length_on_time;
+	//rezhim = 1;
 
+	int kakaya_norma = 0;
+	std::cin >> kakaya_norma;
+	
+	//char stroim_graphic_of = 'V';		// эта переменная для того чтобы понять правильно ли задаются преобразования для V
+	char stroim_graphic_of = 'H';
 	
 	h = x / M;
 	tau = time / N;
-	printf("h = %lf и tau = %lf\n", h, tau);
 
-	switch (mode) {
+	switch (rezhim) {
 	case 0:
 		rezh = mode_my_mode::C_rho;
 		break;
@@ -261,7 +441,7 @@ int main(int argc, char *argv[]) {
 		break;
 	}
 
-	double res = 0, timing = 0;
+	double res1 = 0, res2 = 0, res3 = 0, res4 = 0, timing = 0;
 	double *H_prev = new double[M];
 	double *V_prev = new double[M + 1];
 	double *H = new double[M];
@@ -276,24 +456,121 @@ int main(int argc, char *argv[]) {
 	timing = clock();
 
 	// задаем начальные массивы, они будут служить "предыдущими" массивами
-	set_array_H(H_prev, r, 0, h, M);
-	set_array_V(V_prev, u, 0, h, M + 1);
+	set_array_H(H_prev, 0, h, M, mode);
+	set_array_V(V_prev, 0, h, M + 1, mode);
 
-
-
-	// в цикле функциями от set_matrix решаем и запоминаем решение, оно понадобится дальше
-	for (int i = 0; i < N; i++) {
-		set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, M);
-		/* print_array__H(H, i * tau, M);
-		printf("\n"); */
-		set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, f, tau, h, M, i, rezh);
-		memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
+	
+	if (kakaya_norma == 1 || kakaya_norma == 2 || kakaya_norma == 3 || kakaya_norma == 4) {
+		for (int i = 0; i < N; i++) {
+			//set_array_H(H, i * tau, h, M, mode);
+			set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, i, M, mode);
+			//set_array_V(V, i * tau, h, M + 1, mode);
+			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
+			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
+		}
+		residuals(r, H, N * tau, h, M, mode, res1, res2, res3, res4);
+		//residuals(u, V, N * tau, h, M + 1, mode, res1, res2, res3, res4);
+		switch (kakaya_norma) {
+		case 1:
+			printf("%le", res1);
+			break;
+		case 2:
+			printf("%le", res2);
+			break;
+		case 3:
+			printf("%le", res3);
+			break;
+		case 4:
+			printf("%le", res4);
+			break;
+		}
 	}
+	else
+		switch (stroim_graphic_of) {
+		case 'V':
+		{
+			printf("# h = %lf и tau = %lf\n", h, tau);
+			printf("# Введенное время и пространство ни на что не влияют\n");
+			printf("\n\n$POV << EOD\n");
+			//print_res_V_like_gnu(V_prev, u, 0, h, M, mode);
 
-	print_array__H(H, time, M);
+			// в цикле функциями от set_matrix решаем и запоминаем решение, оно понадобится дальше
+			for (int i = 1; i < N; i++) {
+				set_array_H(H, i * tau, h, M, mode);
+				//set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, i, M, mode);
 
-	residuals(r, H, time, h, M, res);
+				//set_array_V(V, i * tau, h, M + 1, mode);
+				set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
+				print_res_V_like_gnu(V, u, (i + 1) * tau, h, M, mode);
+				memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
+			}
+			residuals(u, V, N * tau, h, M, mode, res1, res2, res3, res4);
 
-	printf("разность = %lf, время = %lf\n", res, (clock() - timing) / CLOCKS_PER_SEC);
+			printf("EOD\n");
+			printf("set xlabel \"ВРЕМЯ\" textcolor rgb \"red\"\nset ylabel \"ПРОСТРАНСТВО\"\n");
+			printf("set title \"График поверхности\"\n");
+			printf("splot $POV using 1:2:3 with lines\n");
+			printf("pause -1\n");
+			//printf("# Итоговый ответ:  ");	print_array(H, M);
+			printf("# разность = %lf, время = %lf\n", res1, (clock() - timing) / CLOCKS_PER_SEC);
+
+			break;
+		}
+		case 'H':
+		{
+			printf("# h = %lf и tau = %lf\n", h, tau);
+			printf("# Введенное время и пространство ни на что не влияют\n");
+			printf("\n\n$POV << EOD\n");
+			//print_res_H_like_gnu(H_prev, r, 0, h, M, mode);
+
+			// в цикле функциями от set_matrix решаем и запоминаем решение, оно понадобится дальше
+			for (int i = 0; i < N; i++) {
+				//set_array_H(H, i * tau, h, M, mode);
+				set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, i, M, mode);
+				print_res_H_like_gnu(H, r, (i + 1) * tau, h, M, mode);
+
+				set_array_V(V, i * tau, h, M + 1, mode);
+				//set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
+				memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
+			}
+			residuals(r, H, N * tau, h, M, mode, res1, res2, res3, res4);
+
+			printf("EOD\n");
+			printf("set xlabel \"ВРЕМЯ\" textcolor rgb \"red\"\nset ylabel \"ПРОСТРАНСТВО\"\n");
+			printf("set title \"График поверхности\"\n");
+			printf("splot $POV using 1:2:3 with lines\n");
+			printf("pause -1\n");
+			//printf("# Итоговый ответ:  ");	print_array(H, M);
+			printf("# разность = %lf, время = %lf\n", res1, (clock() - timing) / CLOCKS_PER_SEC);
+
+			break;
+		}
+		}
+
+
+
+
+/*
+	std::ofstream fout("RESIDUALS.txt");
+	fout << "\n";
+	fout.close ();
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{| c | c | c | c | c |}
+\tau \\ h & 1 & 2 & 3 & 4 & 5 & 6\\
+  \hline
+1 & 1 & 2 & 3 & 4 & 5 & 6\\
+2 & 2 & 2 & 3 & 4 & 5 & 6\\
+3 & 3 & 3 & 3 & 4 & 5 & 6\\
+4 & 4 & 4 & 4 & 4 & 5 & 6\\
+5 & 5 & 5 & 5 & 5 & 5 & 6\\
+6 & 6 & 6 & 6 & 6 & 6 & 6
+\end{tabular}
+\caption{Таблица распределения.}
+\label{tab1}
+\end{center}
+\end{table}*/
+
 	return 0;
 }

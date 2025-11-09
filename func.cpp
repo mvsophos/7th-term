@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include "head.h"
 // для записи в файл
 #include <iostream>
 #include <fstream>
@@ -16,10 +15,66 @@ enum class mode_my_mode {
 
 double gamma_ = 1.4;
 double C = 1;
-double mu = 0.01;
+double mu = 0.1;
 
 double zero(double, double, int) {
 	return 0;
+}
+
+double con = 1;
+
+double u_head (double t, double x)
+{
+  return cos (2. * M_PI * t) * sin (M_PI * x * x * con);
+}
+double rho (double t, double x)
+{
+  return exp (t) * (cos (M_PI * x * con) + 1.5);
+}
+double ddx_u (double t, double x)
+{
+  return M_PI * x * cos (2. * M_PI * t) * cos (M_PI * x * x * con) * 2 * con;
+}
+double ddx_rho (double t, double x)
+{
+  return -M_PI * exp (t) * sin (M_PI * x * con) * con;
+}
+double ddx_rho_u (double t, double x)
+{
+  return ddx_u (t, x) * rho (t, x) + ddx_rho (t, x) * u_head (t, x);
+}
+double ddt_u (double t, double x)
+{
+  return -2. * M_PI * sin (2. * M_PI * t) * sin (M_PI * x * x * con);
+}
+double d_2dx_2_u (double t, double x)
+{
+  /* double constant = M_PI * cos (2. * M_PI * t) * 2 * con;
+  double first = cos (M_PI * x * x * con);
+  double second = M_PI * x * x * sin (M_PI * x * x * con) * 2 * con; */
+  return cos (2 * M_PI * t) * (-sin (M_PI * x * x * con) * 2 * x * 2 * x * con * con * M_PI * M_PI       +       cos (M_PI * x * x * con) * 2 * M_PI * con);
+  //return constant * first - constant * second;
+}
+
+
+
+double f0 (double t, double x)
+{
+  return rho (t, x) + ddx_rho_u (t, x);
+}
+
+double f (double t, double x, double mu)
+{
+ return (rho (t, x) * ddt_u (t, x) + rho (t, x) * u_head (t, x) * ddx_u (t, x) +
+     gamma_ * std::pow (rho (t, x), gamma_ - 1) * ddx_rho (t, x) -
+     -mu * d_2dx_2_u (t, x)) / rho (t, x);
+}
+double f_linear (double t, double x, double mu) {
+	return (rho(t, x) * ddt_u(t, x)  +  rho(t, x) * u_head(t, x) * ddx_u(t, x)  +  C * ddx_rho(t, x) - mu * d_2dx_2_u(t, x)) / rho(t, x);
+}
+bool is_equal (double x, double y)
+{
+  return fabs (x - y) < 1e-14;
 }
 
 double u(double time, double x, int mode) {
@@ -130,7 +185,8 @@ double f_2(double time, double x, int mode, mode_my_mode rezhym) {
 	case 6:
 		return 0;
 	case 7:
-		return f(time, x, mu, gamma_);
+		if (rezhym == mode_my_mode::rho_v_stepeny) return f(time, x, mu);
+		else return f_linear(time, x, mu);
 	case 8:
 		if (rezhym == mode_my_mode::C_rho) return ( 	(cos(3 * M_PI * x) + 1.5) * exp(time) * cos(2 * M_PI * x) * exp(2 * time) 
 						- 2 * M_PI * exp(4 * time) * cos(2 * M_PI * x) * (cos(3 * M_PI * x) + 1.5) * sin(2 * M_PI * x) 
@@ -247,7 +303,7 @@ void print_res_V_like_gnu(double *z, double (*f)(double, double, int), double ti
 }
 
 // функция правильная, проверена работает для 0 в левом верхнем углу матрицы
-void solver (double *p_half, double *phalf, double *phalf1, double *pprev, int N){ // pprev - это правая часть, и вместе с тем туда пишется решение
+int solver (double *p_half, double *phalf, double *phalf1, double *pprev, int N){ // pprev - это правая часть, и вместе с тем туда пишется решение
 	double buf;
 	bool flag = false;
 	if ((fabs(phalf[0]) < eps) && (fabs(phalf1[0]) < eps)) printf("\nСистема нерешаема!\n\n");
@@ -264,10 +320,16 @@ void solver (double *p_half, double *phalf, double *phalf1, double *pprev, int N
 			phalf1[1] = 0;
 		}
 		
-		phalf1[0] /= phalf[0];
-		pprev[0] /= phalf[0];
-		if (flag) buf /= phalf[0];
-		phalf[0] = 1;
+		if (fabs(phalf[0]) < eps) {
+			printf("Начальный массив имееет фигню\n");
+			return -1;
+		}
+		else {
+			phalf1[0] /= phalf[0];
+			pprev[0] /= phalf[0];
+			if (flag) buf /= phalf[0];
+			phalf[0] = 1;
+		}
 
 		for (int i = 1; i <= N - 1; i++){
 			// p_half[i] -= p_half[i] * phalf[i - 1];
@@ -275,9 +337,15 @@ void solver (double *p_half, double *phalf, double *phalf1, double *pprev, int N
 			phalf[i]  -= p_half[i] * phalf1[i - 1];
 			p_half[i] = 0;
 			// сейчас элемент p_half[i] = 0
-			phalf1[i] /= phalf[i];
-			pprev[i]  /= phalf[i];
-			phalf[i]  =  1;
+			if (fabs(phalf[i]) < eps) {
+				printf("Нееееет %d\n", i);
+				return -2;
+			}
+			else {
+				phalf1[i] /= phalf[i];
+				pprev[i]  /= phalf[i];
+				phalf[i]  =  1;
+			}
 		}
 		for (int i = N - 1; i >= 1; i--){
 			// pprev[i] = f[i]; // запоминаем плотность на прошлом шаге
@@ -289,32 +357,43 @@ void solver (double *p_half, double *phalf, double *phalf1, double *pprev, int N
 			pprev[0] -= pprev[2] * buf;
 		}
 	}
+	return 0;
 }
 
 
 
 // функция задающая элементы матрицы под, на и над главной диагональю, n - это размер матрицы
 int set_matrix_H (double *H_under, double *H_main, double *H_above, double *V, double *right_part, double *H_prev, double tau, double h, int timestep, int M, int mode) {
-	H_above[0] = 0.5 * (V[1] - fabs(V[1])) / h;
-	H_main[0]  = 1 / tau + 0.5 * (V[1] + fabs(V[1])) / h;
+	H_above[0] = 0.5 * (V[1] - fabs(V[1])) / h * tau;
+	H_main[0]  = 1 + 0.5 * (V[1] + fabs(V[1])) / h * tau;
 	H_under[0] = 0;
-	right_part[0] = H_prev[0] / tau + f_1((timestep) * tau, 0.5 * h, mode);
+	right_part[0] = H_prev[0] + f_1((timestep) * tau, 0.5 * h, mode) * tau;
 
 	for (int i = 1; i <= M - 2; i++) {
-		H_above[i] = 0.5 * 1 / h * (V[i + 1] - fabs(V[i + 1]));
-		H_main[i]  = 1 / tau  +  0.5 * 1 / h * (V[i + 1] + fabs(V[i + 1]) - V[i] + fabs(V[i]));
-		H_under[i] = (-0.5) * 1 / h * (V[i] + fabs(V[i]));
+		H_above[i] = 0.5 * 1 / h * (V[i + 1] - fabs(V[i + 1])) * tau;
+		H_main[i]  = 1 +  0.5 * 1 / h * (V[i + 1] + fabs(V[i + 1]) - V[i] + fabs(V[i])) * tau;
+		H_under[i] = (-0.5) * 1 / h * (V[i] + fabs(V[i])) * tau;
 
-		right_part[i] = H_prev[i] / tau + f_1((timestep) * tau, (i + 0.5) * h, mode);
+		right_part[i] = H_prev[i] + f_1((timestep) * tau, (i + 0.5) * h, mode) * tau;
 	}
 
 	H_above[M - 1] = 0;
-	H_main[M - 1]  = 1 / tau + 0.5 * (-V[M - 1] + fabs(V[M - 1])) / h;
-	H_under[M - 1] = (-0.5) * (V[M - 1] + fabs(V[M - 1])) / h;
-	right_part[M - 1] = H_prev[M - 1] / tau + f_1((timestep) * tau, (M - 0.5) * h, mode);
+	H_main[M - 1]  = 1 + 0.5 * (-V[M - 1] + fabs(V[M - 1])) / h * tau;
+	H_under[M - 1] = (-0.5) * (V[M - 1] + fabs(V[M - 1])) / h * tau;
+	right_part[M - 1] = H_prev[M - 1] + f_1((timestep) * tau, (M - 0.5) * h, mode) * tau;
 
 	// далее решаем прогонкой, а в правой части получаем решение
-	solver(H_under, H_main, H_above, right_part, M);
+	int result = solver(H_under, H_main, H_above, right_part, M);
+	for (int iter = 0; iter < M; iter++)
+		if (right_part[iter] < eps) right_part[iter] = 0; //printf("Пипяу, есть отрицательная плотность, этого не может быть\n %d это шаг во времени, а значение %le\n", timestep, right_part[iter]);
+	switch (result) {
+	case  0:
+		break;
+	case -1:
+	case -2:
+		printf("Все плохо\n");
+		return -1;
+	}
 	//right_part[0] = H_prev[0];
 	//right_part[M - 1] = H_prev[M - 1];
 	//print_array(right_part, M);
@@ -326,6 +405,7 @@ int set_matrix_V (double *V_under, double *V_main, double *V_above, double *H, d
 	V_above[0] = 0;
 	V_main[0] = 1;
 	V_under[0] = 0;
+	//right_part[0] = V_prev[0];
 	right_part[0] = 0;
 	for (int i = 1; i < M; i++) {
 		// если сумма равна 0, то надо задать коэффициент 1, а числа слева и справа равны 0
@@ -341,6 +421,12 @@ int set_matrix_V (double *V_under, double *V_main, double *V_above, double *H, d
 			V_under[i] = -0.5 * (H[i] + H[i - 1]) * (1 / h) * 0.5 * (V_prev[i] + fabs(V_prev[i]))  -  mu * 1 / (h * h);
 
 			if (rezhym == mode_my_mode::rho_v_stepeny) {
+				if (H[i] < 0) {
+					printf("Плохое говно в %d\n", i);
+				}
+				else if (H[i - 1] < 0) {
+					printf("Плохое говно в %d\n", i - 1);
+				}
 				right_part[i] = 0.5 * (H[i] + H[i - 1]) * V_prev[i] / tau  +  0.5 * 1 * (H[i] + H[i - 1]) * f_2((time_step) * tau, i * h, mode, mode_my_mode::rho_v_stepeny) - (gamma_ / (gamma_ - 1)) * (1 / h) * 0.5 * (H[i] + H[i - 1]) * (pow(H[i], gamma_ - 1) - pow(H[i - 1], gamma_ - 1));
 			}
 			else if (rezhym == mode_my_mode::C_rho) {
@@ -351,9 +437,19 @@ int set_matrix_V (double *V_under, double *V_main, double *V_above, double *H, d
 	V_above[M] = 0;
 	V_main[M] = 1;
 	V_under[M] = 0;
-	right_part[M] = 0;
+	//right_part[M] = V_prev[M];
+	right_part[0] = 0;
+
 	// тут решаем
-	solver(V_under, V_main, V_above, right_part, M + 1);
+	int result = solver(V_under, V_main, V_above, right_part, M + 1);
+	switch (result) {
+	case  0:
+		break;
+	case -1:
+	case -2:
+		printf("Все плохо\n");
+		return -1;
+	}
 	//right_part[0] = 0; right_part[M] = 0;
 	return 0;
 }
@@ -387,7 +483,7 @@ void residuals(double (*rho_func)(double, double, int), double *H, double time, 
 	for (int i = 1; i < M; i++) {
 		buf = H[i] - rho_func(time, (i + 0.5) * h, mode);
 		r1 = fmax(r1, fabs(buf));
-		r2 += buf;
+		r2 += buf * buf;
 
 	}
 	r2 = sqrt(r2 * h);
@@ -463,9 +559,17 @@ int main(int argc, char *argv[]) {
 	if (kakaya_norma == 1 || kakaya_norma == 2 || kakaya_norma == 3 || kakaya_norma == 4) {
 		for (int i = 0; i < N; i++) {
 			//set_array_H(H, i * tau, h, M, mode);
-			set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, i, M, mode);
+			int result = set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, i, M, mode);
+			if (result != 0) {
+				printf("Плохое решение плотности на шаге %d\n", i);
+				return -1;
+			}
 			//set_array_V(V, i * tau, h, M + 1, mode);
-			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
+			result = set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
+			if (result != 0) {
+				printf("Плохое решение скорости на шаге %d\n", i);
+				return -2;
+			}
 			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
 		}
 		residuals(r, H, N * tau, h, M, mode, res1, res2, res3, res4);

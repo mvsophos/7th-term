@@ -556,7 +556,7 @@ int main(int argc, char *argv[]) {
 	set_array_V(V_prev, 0, h, M + 1, mode);
 
 	
-	if (kakaya_norma == 1 || kakaya_norma == 2 || kakaya_norma == 3 || kakaya_norma == 4) {
+	if (kakaya_norma == 1 || kakaya_norma == 2 || kakaya_norma == 3 || kakaya_norma == 4 || kakaya_norma == 5) {
 		for (int i = 0; i < N; i++) {
 			//set_array_H(H, i * tau, h, M, mode);
 			int result = set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, i, M, mode);
@@ -586,6 +586,9 @@ int main(int argc, char *argv[]) {
 			break;
 		case 4:
 			printf("%le", res4);
+			break;
+		case 5:
+			printf("%0.3le,  %0.3le", res1, res2);
 			break;
 		}
 	}
@@ -650,31 +653,5 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 		}
-
-
-
-
-/*
-	std::ofstream fout("RESIDUALS.txt");
-	fout << "\n";
-	fout.close ();
-
-\begin{table}[h]
-\begin{center}
-\begin{tabular}{| c | c | c | c | c |}
-\tau \\ h & 1 & 2 & 3 & 4 & 5 & 6\\
-  \hline
-1 & 1 & 2 & 3 & 4 & 5 & 6\\
-2 & 2 & 2 & 3 & 4 & 5 & 6\\
-3 & 3 & 3 & 3 & 4 & 5 & 6\\
-4 & 4 & 4 & 4 & 4 & 5 & 6\\
-5 & 5 & 5 & 5 & 5 & 5 & 6\\
-6 & 6 & 6 & 6 & 6 & 6 & 6
-\end{tabular}
-\caption{Таблица распределения.}
-\label{tab1}
-\end{center}
-\end{table}*/
-
 	return 0;
 }

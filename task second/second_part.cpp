@@ -6,6 +6,7 @@
 // для записи в файл
 #include <iostream>
 #include <fstream>
+#include <unistd.h>
 
 #define eps 1.e-15
 
@@ -17,8 +18,8 @@ enum class number_task {
 };
 
 double gamma_ = 1.4;
-double C = 1;
-double mu = 0.1;
+double C = 10;
+double mu = 0.01;
 
 double zero(double, double, int) {
 	return 0;
@@ -302,7 +303,7 @@ int main(int argc, char *argv[]) {
 
 	int kakaya_norma = 0;
 	std::cin >> kakaya_norma;
-	kakaya_norma = 0;
+	//kakaya_norma = 0;
 	
 	h = x / M;
 	tau = time / N;
@@ -348,8 +349,31 @@ int main(int argc, char *argv[]) {
 	set_array_H(H_prev, 0, h, M, mode);
 	set_array_V(V_prev, 0, h, M + 1, mode);
 
-	
-	if (kakaya_norma == 1 || kakaya_norma == 2 || kakaya_norma == 3 || kakaya_norma == 4 || kakaya_norma == 5) {
+	if (kakaya_norma < 0) {
+		double r1 = 1, buf;	int j = 0;
+
+		set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, 0, M, mode);
+
+		r1 = fabs(H[0] - H_prev[0]);
+		for (int i = 1; i < M; i++) { buf = H[i] - H_prev[i];		r1 = fmax(r1, fabs(buf)); }
+
+		set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, 0, mode, rezh);
+		memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
+		j += 1;
+
+		do {			// хз почему надо сделать как минимум два шага, так как после первого она нулевая, соответственно надо по-нормальному
+			set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, j, M, mode);
+			
+			r1 = fabs(H[4] - H_prev[4]);
+			for (int i = 5; i < M - 4; i++) { buf = H[i] - H_prev[i];		r1 = fmax(r1, fabs(buf)); }
+
+			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, j, mode, rezh);
+			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
+			j += 1;
+		} while (r1 > 0.001);
+		printf("%d %le\n", j, r1);
+	}
+	else if (kakaya_norma == 1 || kakaya_norma == 2 || kakaya_norma == 3 || kakaya_norma == 4 || kakaya_norma == 5) {
 		for (int i = 0; i < N; i++) {
 			//set_array_H(H, i * tau, h, M, mode);
 			int result = set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, i, M, mode);
@@ -385,7 +409,7 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
-	else {				// РИСОВАНИЕ КАРТИНКИ
+	else if (kakaya_norma == 0) {				// РИСОВАНИЕ КАРТИНКИ
 		printf("# h = %lf и tau = %lf\n", h, tau);
 		printf("# Введенное время и пространство ни на что не влияют\n");
 
@@ -417,6 +441,22 @@ int main(int argc, char *argv[]) {
 				"plot $POV using 1:2:3 with image \n");
 
 		printf("# время = %lf\n", (clock() - timing) / CLOCKS_PER_SEC);
+	}
+	else {											// РИСОВАНИЕ ГРАФИКА ПОВЕРХНОСТИ
+		printf("$POV << EOD\n");
+
+		for (int i = 0; i < N; i++) {
+			set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, i, M, mode);
+			if (i % (N / 400) == 0) print_H_like_gnu(H, (i + 1) * tau, h, M, mode);
+			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
+			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
+		}
+
+		printf("EOD\n");
+		printf("set xlabel \"ВРЕМЯ\" textcolor rgb \"red\"\nset ylabel \"ПРОСТРАНСТВО\"\n");
+		printf("set title \"График поверхности\"\n");
+		printf("splot $POV using 1:2:3 with lines\n");
+		printf("pause -1\n");
 	}
 	return 0;
 }

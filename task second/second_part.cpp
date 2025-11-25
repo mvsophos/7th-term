@@ -81,7 +81,7 @@ void print_array__H(double *array, double time, int n, number_task mode) {
 
 void print_H_like_gnu(double *z, double time_x, double h, int M, number_task mode) {
 	for (int i = 0; i < M; i++) {
-		printf("%lf  %lf  %lf \n", time_x, (i + 0.5) * h, z[i]);
+		if ((i % (M / 100) == 0) || (i == M - 1)) printf("%lf  %lf  %lf \n", time_x, i * h, z[i]);
 	}
 	printf("\n");
 }
@@ -385,24 +385,37 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
-	else {
+	else {				// РИСОВАНИЕ КАРТИНКИ
 		printf("# h = %lf и tau = %lf\n", h, tau);
 		printf("# Введенное время и пространство ни на что не влияют\n");
-		printf("\n\n$POV << EOD\n");
-		//print_res_H_like_gnu(H_prev, r, 0, h, M, mode);
+
+		printf("set terminal png size 1000, 600 \n" \
+				"set encoding utf8 \n" \
+				"set output 'gnuplot_heatmap_%d.png' \n" \
+				"set palette viridis \n" \
+				"set colorbox vertical default \n" \
+				"set rmargin at screen 0.9 \n" \
+				"set yrange [0:10] \n" \
+				"unset border \n" \
+				"$POV << EOD\n", mode_of_task);
 
 		for (int i = 0; i < N; i++) {
 			set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, i, M, mode);
-			if (i % (N / 50) == 0) print_H_like_gnu(H, (i + 1) * tau, h, M, mode);
+			if (i % (N / 400) == 0) print_H_like_gnu(H, (i + 1) * tau, h, M, mode);
 			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
 			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
 		}
 
 		printf("EOD\n");
-		printf("set xlabel \"ВРЕМЯ\" textcolor rgb \"red\"\nset ylabel \"ПРОСТРАНСТВО\"\n");
-		printf("set title \"График поверхности\"\n");
-		printf("splot $POV using 1:2:3 with lines\n");
-		printf("pause -1\n");
+
+		if (rezh == mode_my_mode::C_rho) printf("set bmargin 8 \n" \
+												"set label \"C = %d,  \u00B5 = %g\" at screen 0.5, screen 0.05 center font \"Open Sans, 20\" \n", (int)C, mu);
+		else printf("set bmargin 8 \n" \
+					"set label \"\u00B5 = %g\" at screen 0.5, screen 0.05 center font \"Open Sans, 20\" \n", mu);
+
+		printf("set xlabel \"ВРЕМЯ\" textcolor rgb \"red\"\nset ylabel \"ПРОСТРАНСТВО\" \n" \
+				"plot $POV using 1:2:3 with image \n");
+
 		printf("# время = %lf\n", (clock() - timing) / CLOCKS_PER_SEC);
 	}
 	return 0;

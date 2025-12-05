@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
+#include <fenv.h>
 
 #define eps 1.e-15
 
@@ -18,7 +19,7 @@ enum class number_task {
 };
 
 double gamma_ = 1.4;
-double C = 10;
+int C = 10;
 double mu = 0.01;
 
 double zero(double, double, int) {
@@ -81,10 +82,44 @@ void print_array__H(double *array, double time, int n, number_task mode) {
 }
 
 void print_H_like_gnu(double *z, double time_x, double h, int M, number_task mode) {
-	for (int i = 0; i < M; i++) {
-		if ((i % (M / 100) == 0) || (i == M - 1)) printf("%lf  %lf  %lf \n", time_x, i * h, z[i]);
+	int j = 10;
+	for (int i = 0 + j; i < M - j; i++) {
+		if ((i % (M / 300) == 0) || (i == M - 1 - j)) printf("%lf  %lf  %lf \n", time_x, i * h, z[i]);
 	}
 	printf("\n");
+}
+
+std::string print_H_in_file(double *H, double *H_prev, double h, int M, int mode_of_writing) {
+    std::string baseName = "data_H_";
+    std::string fileExtension = ".gp";
+	std::string number_name;
+
+    // Преобразуем int в string и объединяем части имени
+	switch (mode_of_writing) {
+	case 1:
+		number_name = "0,25";
+		break;
+	case 2:
+		number_name = "0,50";
+		break;
+	case 3:
+		number_name = "0,75";
+		break;
+	case 4:
+		number_name = "1,00";
+		break;
+	}
+    std::string fileName = baseName + number_name + fileExtension;
+	std::ofstream out;
+	out.open(fileName);
+
+	for (int i = 0; i < M; i++) {
+		if (i % (M / 400) == 0) out << (i + 0.5) * h << " " << H[i] - H_prev[i] << "\n";
+	}
+
+	out.close ();
+
+	return fileName;
 }
 
 // функция правильная, проверена работает для 0 в левом верхнем углу матрицы
@@ -279,27 +314,37 @@ void residuals(double (*rho_func)(double, double, number_task), double *H, doubl
 int main(int argc, char *argv[]) {
 	// задаем начальные данные из введенных значений
 	int M, N, rezhim, mode_of_task;	// M = шагов по пространству, N = шагов по времени, mode = 0 или 1
-	double h, tau;			        // h - шаг по пространству, tau - шфг по времени
+	double h, tau;			        // h - шаг по пространству, tau - шаг по времени
 	double x, time;			        // x - длина отрезка (считаем что он равен 1), time - временной отрезок
-	double length_on_space = 10.0, length_on_time = 1.0;
+	double length_on_space = 10.0, length_on_time = 10.0;
 	number_task mode;
 	mode_my_mode rezh;
 
-	printf("# Usage: ./a.out  x  time  M  N  <rezhim = 0 or 1>  <mode_of_task = 1 or 2>\n");
+	feenableexcept(FE_ALL_EXCEPT & ~FE_INEXACT);
 
-	if (!(argc == 7 
-		&& sscanf(argv[1], "%lf", &x) == 1
-		&& sscanf(argv[2], "%lf", &time) == 1
-		&& sscanf(argv[3], "%d",  &M) == 1
-		&& sscanf(argv[4], "%d",  &N) == 1
-		&& sscanf(argv[5], "%d",  &rezhim) == 1
-		&& sscanf(argv[6], "%d",  &mode_of_task) == 1
-		&& x > eps && time > eps && N >= 1 && M >= 1 
-		&& fabs(rezhim - 0.5) < 0.6)){ return -1; }
 
-	//x = length_on_space;
+
+	if (!(argc == 8 
+		&& sscanf(argv[1], "%lf", &h) == 1
+		&& sscanf(argv[2], "%lf", &tau) == 1
+		&& sscanf(argv[3], "%d",  &rezhim) == 1
+		&& sscanf(argv[4], "%d",  &mode_of_task) == 1
+		&& sscanf(argv[5], "%d",  &C) == 1
+		&& sscanf(argv[6], "%lf", &mu) == 1
+		&& sscanf(argv[7], "%lf", &time) == 1
+		&& fabs(mode_of_task - 1.5) < 0.6 
+		&& fabs(rezhim - 0.5) < 0.6)){ 
+			printf("Для откладки\n");
+			return -1; }
+
+	x = length_on_space;
 	//time = length_on_time;
 	//rezhim = 1;
+
+	N = (int) (time / tau);
+	M = (int) (x / h);
+
+	//printf("M = %d, N = %d\n", M, N);
 
 	int kakaya_norma = 0;
 	std::cin >> kakaya_norma;
@@ -332,16 +377,16 @@ int main(int argc, char *argv[]) {
 	}
 
 	double res1 = 0, res2 = 0, res3 = 0, res4 = 0, timing = 0;
-	double *H_prev = new double[M];
-	double *V_prev = new double[M + 1];
-	double *H = new double[M];
-	double *V = new double[M + 1];
-	double *H_under = new double[M];
-	double *H_main  = new double[M];
-	double *H_above = new double[M];
-	double *V_under = new double[M + 1];
-	double *V_main  = new double[M + 1];
-	double *V_above = new double[M + 1];
+	double *H_prev = new double[M + 1 + 1];
+	double *V_prev = new double[M + 1 + 1 + 1];
+	double *H = new double[M + 1 + 1];
+	double *V = new double[M + 1 + 1 + 1];
+	double *H_under = new double[M + 1 + 1];
+	double *H_main  = new double[M + 1 + 1];
+	double *H_above = new double[M + 1 + 1];
+	double *V_under = new double[M + 1 + 1 + 1];
+	double *V_main  = new double[M + 1 + 1 + 1];
+	double *V_above = new double[M + 1 + 1 + 1];
 
 	timing = clock();
 
@@ -349,29 +394,47 @@ int main(int argc, char *argv[]) {
 	set_array_H(H_prev, 0, h, M, mode);
 	set_array_V(V_prev, 0, h, M + 1, mode);
 
+	double H_0 = 0;
+	for (int i = 0; i < M; i++) {
+		H_0 += (H_prev[i] > 0 ? H_prev[i] : 0);
+	}
+
 	if (kakaya_norma < 0) {
-		double r1 = 1, buf;	int j = 0;
+		double r1 = 1, r2, buf;
+		int j;
 
-		set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, 0, M, mode);
+		for (j = 0; j < 10; j++) {
+			set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, j, M, mode);
 
-		r1 = fabs(H[0] - H_prev[0]);
-		for (int i = 1; i < M; i++) { buf = H[i] - H_prev[i];		r1 = fmax(r1, fabs(buf)); }
+			r1 = fabs(H[0] - H_prev[0]);
+			for (int i = 1; i < M; i++) { buf = H[i] - H_prev[i];		r1 = fmax(r1, fabs(buf)); }
+			r2 = r1;
 
-		set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, 0, mode, rezh);
-		memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
-		j += 1;
+			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, 1, mode, rezh);
+			//set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, 0, mode, rezh);
+			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
+		}
 
 		do {			// хз почему надо сделать как минимум два шага, так как после первого она нулевая, соответственно надо по-нормальному
 			set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, j, M, mode);
 			
-			r1 = fabs(H[4] - H_prev[4]);
-			for (int i = 5; i < M - 4; i++) { buf = H[i] - H_prev[i];		r1 = fmax(r1, fabs(buf)); }
+			r1 = fabs(H[0] - H_prev[0]);
+			for (int i = 1; i < M; i += 1) { buf = H[i] - H_prev[i];		r1 = fmax(r1, fabs(buf)); }
+			r2 = r1;
 
+			if (r1 > 10 /* || r2 / r1 > 1.1 */) {
+				printf("Вероятнее всего, решение не стабилизируется, лучше уменьшить шаги\n");
+				break;
+			}
+
+			//set_array_V(V, j * tau, h, M + 1, mode);
 			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, j, mode, rezh);
 			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
 			j += 1;
+
+			if (j % 100 == 0) printf("# %d %le\n", j, r1);
 		} while (r1 > 0.001);
-		printf("%d %le\n", j, r1);
+		printf("# SHAG = %d, time = %lf, %le\n", j, j * tau, r1);			// первое это время стабилизации, а второе это сама невязка
 	}
 	else if (kakaya_norma == 1 || kakaya_norma == 2 || kakaya_norma == 3 || kakaya_norma == 4 || kakaya_norma == 5) {
 		for (int i = 0; i < N; i++) {
@@ -409,19 +472,95 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
+	else if (kakaya_norma == 1000) {
+		// тут у нас есть время стабилизации, а еще выбор графика H, либо V, которые на определенных шагах мы будем рисовать в файлы в виде плоских графиков
+		// N будет временем стабилизации
+
+		if (rezh == mode_my_mode::C_rho) 	printf("set terminal png size 1200, 800 \n set output \"planar_graphs_C=%d_mu=%g.png\" \n", C, mu);
+		else								printf("set terminal png size 1200, 800 \n set output \"planar_graphs_mu=%g.png\" \n", mu);
+		printf("set multiplot layout 2, 2 rowsfirst \n");
+
+		std::string filename1, filename2, filename3, filename4;
+
+		for (int i = 0; i < N + 1; i++) {
+			set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, i, M, mode);
+			/*
+			if (i % (N / 400) == 0) {
+				print_H_like_gnu(H, (i + 1) * tau, h, M, mode);
+			}*/
+
+			if (i == N / 4) {
+				filename1 = print_H_in_file(H, H_prev, h, M, 1);
+				printf("set xlabel \"ВРЕМЯ\" textcolor rgb \"red\"\nset ylabel \"ПРОСТРАНСТВО\" \n");
+				if (rezh == mode_my_mode::C_rho)
+					printf ("set bmargin 4 \n" \
+							"set label \"C = %d,  \u00B5 = %g\" at screen 0.5, screen 0.05 center font \"Open Sans, 20\" \n", (int)C, mu);
+				else printf("set bmargin 8 \n" \
+							"set label \"\u00B5 = %g\" at screen 0.5, screen 0.05 center font \"Open Sans, 20\" \n", mu);
+				printf("plot \"%s\" using 1:2 with lines \n", filename1.c_str());
+			}
+			else if (i == N / 2) {
+				filename2 = print_H_in_file(H, H_prev, h, M, 2);
+				printf("set xlabel \"ВРЕМЯ\" textcolor rgb \"red\"\nset ylabel \"ПРОСТРАНСТВО\" \n");
+				if (rezh == mode_my_mode::C_rho)
+					printf ("set bmargin 4 \n" \
+							"set label \"C = %d,  \u00B5 = %g\" at screen 0.5, screen 0.05 center font \"Open Sans, 20\" \n", (int)C, mu);
+				else printf("set bmargin 8 \n" \
+							"set label \"\u00B5 = %g\" at screen 0.5, screen 0.05 center font \"Open Sans, 20\" \n", mu);
+				printf("plot \"%s\" using 1:2 with lines \n", filename2.c_str());
+			}
+			else if (i == 3 * N / 4) {
+				filename3 = print_H_in_file(H, H_prev, h, M, 3);
+				printf("set xlabel \"ВРЕМЯ\" textcolor rgb \"red\"\nset ylabel \"ПРОСТРАНСТВО\" \n");
+				if (rezh == mode_my_mode::C_rho)
+					printf ("set bmargin 6 \n" \
+							"set label \"C = %d,  \u00B5 = %g\" at screen 0.5, screen 0.05 center font \"Open Sans, 20\" \n", (int)C, mu);
+				else printf("set bmargin 8 \n" \
+							"set label \"\u00B5 = %g\" at screen 0.5, screen 0.05 center font \"Open Sans, 20\" \n", mu);
+				printf("plot \"%s\" using 1:2 with lines \n", filename3.c_str());
+			}
+			else if (i == N) {
+				filename4 = print_H_in_file(H, H_prev, h, M, 4);
+				printf("set xlabel \"ВРЕМЯ\" textcolor rgb \"red\"\nset ylabel \"ПРОСТРАНСТВО\" \n");
+				if (rezh == mode_my_mode::C_rho)
+					printf ("set bmargin 6 \n" \
+							"set label \"C = %d,  \u00B5 = %g\" at screen 0.5, screen 0.05 center font \"Open Sans, 20\" \n", (int)C, mu);
+				else printf("set bmargin 8 \n" \
+							"set label \"\u00B5 = %g\" at screen 0.5, screen 0.05 center font \"Open Sans, 20\" \n", mu);
+				printf("plot \"%s\" using 1:2 with lines \n", filename4.c_str());
+			}
+			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
+			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
+		}
+
+		printf("# время = %lf\n", (clock() - timing) / CLOCKS_PER_SEC);
+	}
 	else if (kakaya_norma == 0) {				// РИСОВАНИЕ КАРТИНКИ
 		printf("# h = %lf и tau = %lf\n", h, tau);
 		printf("# Введенное время и пространство ни на что не влияют\n");
 
+		if (rezh == mode_my_mode::C_rho)
 		printf("set terminal png size 1000, 600 \n" \
 				"set encoding utf8 \n" \
-				"set output 'gnuplot_heatmap_%d.png' \n" \
+				"set output 'gnuplot_heatmap__%d__%g.png' \n" \
 				"set palette viridis \n" \
 				"set colorbox vertical default \n" \
 				"set rmargin at screen 0.9 \n" \
-				"set yrange [0:10] \n" \
+				"set xrange [0:%lf] \n" \
+				"set yrange [0:%lf] \n" \
 				"unset border \n" \
-				"$POV << EOD\n", mode_of_task);
+				"$POV << EOD\n", C, mu, time, x);
+		else
+				printf("set terminal png size 1000, 600 \n" \
+				"set encoding utf8 \n" \
+				"set output 'gnuplot_heatmap_%g.png' \n" \
+				"set palette viridis \n" \
+				"set colorbox vertical default \n" \
+				"set rmargin at screen 0.9 \n" \
+				"set xrange [0:%lf] \n" \
+				"set yrange [0:%lf] \n" \
+				"unset border \n" \
+				"$POV << EOD\n", mu, time, x);
 
 		for (int i = 0; i < N; i++) {
 			set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, i, M, mode);
@@ -458,5 +597,11 @@ int main(int argc, char *argv[]) {
 		printf("splot $POV using 1:2:3 with lines\n");
 		printf("pause -1\n");
 	}
+
+	delete [] H_under; delete [] H_main; delete [] H_above;
+	delete [] V_under; delete [] V_main; delete [] V_above;
+	delete [] H; delete [] V;
+	delete [] H_prev; delete [] V_prev;
+
 	return 0;
 }

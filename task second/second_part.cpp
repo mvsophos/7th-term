@@ -22,6 +22,8 @@ double gamma_ = 1.4;
 int C = 10;
 double mu = 0.01;
 
+int M_dpi = 3000;
+
 double zero(double, double, int) {
 	return 0;
 }
@@ -82,9 +84,11 @@ void print_array__H(double *array, double time, int n, number_task mode) {
 }
 
 void print_H_like_gnu(double *z, double time_x, double h, int M, number_task mode) {
-	int j = 10;
-	for (int i = 0 + j; i < M - j; i++) {
-		if ((i % (M / 300) == 0) || (i == M - 1 - j)) printf("%lf  %lf  %lf \n", time_x, i * h, z[i]);
+	int j = 0;
+	int shag_ = ((M / M_dpi) == 0) ? 1 : M / M_dpi;
+	for (int i = 0 + j; i < M - j; i += shag_) {
+		//if ((i % (M / 300) == 0) || (i == M - 1 - j)) printf("%lf  %lf  %lf \n", time_x, i * h, z[i]);
+		printf("%lf  %lf  %lf \n", time_x, i * h, z[i]);
 	}
 	printf("\n");
 }
@@ -113,8 +117,14 @@ std::string print_H_in_file(double *H, double *H_prev, double h, int M, int mode
 	std::ofstream out;
 	out.open(fileName);
 
-	for (int i = 0; i < M; i++) {
+	/* for (int i = 0; i < M; i++) {
 		if (i % (M / 400) == 0) out << (i + 0.5) * h << " " << H[i] - H_prev[i] << "\n";
+	} */
+
+	int shag_ = ((M / M_dpi) == 0) ? 1 : M / M_dpi;
+
+	for (int i = 0; i < M; i += shag_) {
+		out << (i + 0.5) * h << " " << H[i] - H_prev[i] << "\n";
 	}
 
 	out.close ();
@@ -163,13 +173,14 @@ int solver (double *p_half, double *phalf, double *phalf1, double *pprev, int N)
 			}
 			else {
 				phalf1[i] /= phalf[i];
-				pprev[i]  /= phalf[i];
+				if (fabs(pprev[i]) > eps) pprev[i]  /= phalf[i];
+				else pprev[i] = 0;
 				phalf[i]  =  1;
 			}
 		}
 		for (int i = N - 1; i >= 1; i--){
 			// pprev[i] = f[i]; // запоминаем плотность на прошлом шаге
-			pprev[i - 1] -= pprev[i] * phalf1[i - 1];
+			if (fabs(pprev[i]) > eps) pprev[i - 1] -= pprev[i] * phalf1[i - 1];
 			phalf1[i - 1] = 0;
 		}
 
@@ -325,8 +336,10 @@ int main(int argc, char *argv[]) {
 
 
 	if (!(argc == 8 
-		&& sscanf(argv[1], "%lf", &h) == 1
-		&& sscanf(argv[2], "%lf", &tau) == 1
+		/* && sscanf(argv[1], "%lf", &h) == 1
+		&& sscanf(argv[2], "%lf", &tau) == 1 */
+		&& sscanf(argv[1], "%d", &M) == 1
+		&& sscanf(argv[2], "%d", &N) == 1
 		&& sscanf(argv[3], "%d",  &rezhim) == 1
 		&& sscanf(argv[4], "%d",  &mode_of_task) == 1
 		&& sscanf(argv[5], "%d",  &C) == 1
@@ -341,8 +354,16 @@ int main(int argc, char *argv[]) {
 	//time = length_on_time;
 	//rezhim = 1;
 
-	N = (int) (time / tau);
-	M = (int) (x / h);
+	/* N = (int) (time / tau);
+	M = (int) (x / h); */
+
+	if (M < 2 || N < 2) {
+		printf("Плохие данные ты ввел\n");
+		return -2;
+	}
+
+	h = x / M;
+	tau = time / N;
 
 	//printf("M = %d, N = %d\n", M, N);
 
@@ -350,8 +371,8 @@ int main(int argc, char *argv[]) {
 	std::cin >> kakaya_norma;
 	//kakaya_norma = 0;
 	
-	h = x / M;
-	tau = time / N;
+	/* h = x / M;
+	tau = time / N; */
 
 	switch (rezhim) {
 	case 0:
@@ -408,21 +429,29 @@ int main(int argc, char *argv[]) {
 
 			r1 = fabs(H[0] - H_prev[0]);
 			for (int i = 1; i < M; i++) { buf = H[i] - H_prev[i];		r1 = fmax(r1, fabs(buf)); }
+			// r1 = fabs(H[0] - 0.2);
+			// for (int i = 1; i < M; i++) { buf = H[i] - 1.2;		r1 = fmax(r1, fabs(buf)); }
 			r2 = r1;
 
-			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, 1, mode, rezh);
-			//set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, 0, mode, rezh);
+			//set_array_V(V, j * tau, h, M + 1, mode);
+			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, j, mode, rezh);
 			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
 		}
 
 		do {			// хз почему надо сделать как минимум два шага, так как после первого она нулевая, соответственно надо по-нормальному
 			set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, j, M, mode);
 			
-			r1 = fabs(H[0] - H_prev[0]);
-			for (int i = 1; i < M; i += 1) { buf = H[i] - H_prev[i];		r1 = fmax(r1, fabs(buf)); }
+			if (mode == number_task::first) {		// раньше вместо 1.1 вычитался H_prev[i]
+				r1 = fabs(H[0] - 1.1);
+				for (int i = 1; i < M; i += 1) { buf = H[i] - 1.1;		r1 = fmax(r1, fabs(buf)); }
+			}
+			else {									// раньше вместо 1 вычитался H_prev[i]
+				r1 = fabs(H[0] - 1);
+				for (int i = 1; i < M; i += 1) { buf = H[i] - 1;		r1 = fmax(r1, fabs(buf)); }
+			}
 			r2 = r1;
 
-			if (r1 > 10 /* || r2 / r1 > 1.1 */) {
+			if (r1 > 3 /* || r2 / r1 > 1.1 */) {
 				printf("Вероятнее всего, решение не стабилизируется, лучше уменьшить шаги\n");
 				break;
 			}
@@ -434,7 +463,13 @@ int main(int argc, char *argv[]) {
 
 			if (j % 100 == 0) printf("# %d %le\n", j, r1);
 		} while (r1 > 0.001);
-		printf("# SHAG = %d, time = %lf, %le\n", j, j * tau, r1);			// первое это время стабилизации, а второе это сама невязка
+		
+		double delta_law = 0, all_sum = 0;
+		for (int iter = 0; iter < M; iter++) {
+			delta_law += (H_prev[iter] - r (0, (iter + 0.5) * h, mode));
+			all_sum += r(0, (iter + 0.5) * h, mode);
+		}
+		printf("# SHAG = %d, time = %lf, r1 = %le, LAW = %le\n", j, j * tau, r1, delta_law / all_sum);			// первое это время стабилизации, а второе это сама невязка
 	}
 	else if (kakaya_norma == 1 || kakaya_norma == 2 || kakaya_norma == 3 || kakaya_norma == 4 || kakaya_norma == 5) {
 		for (int i = 0; i < N; i++) {
@@ -539,32 +574,36 @@ int main(int argc, char *argv[]) {
 		printf("# h = %lf и tau = %lf\n", h, tau);
 		printf("# Введенное время и пространство ни на что не влияют\n");
 
+		double low_bound_of_color = (mode_of_task == 1) ? 1 : 0;
+
 		if (rezh == mode_my_mode::C_rho)
-		printf("set terminal png size 1000, 600 \n" \
+		printf("set terminal png size 2000, 600 \n" \
 				"set encoding utf8 \n" \
-				"set output 'gnuplot_heatmap__%d__%g.png' \n" \
+				"set output 'gnuplot_heatmap__%d__%g____h=%g_tau=%g__%d.png' \n" \
 				"set palette viridis \n" \
 				"set colorbox vertical default \n" \
 				"set rmargin at screen 0.9 \n" \
 				"set xrange [0:%lf] \n" \
 				"set yrange [0:%lf] \n" \
+				"set cbrange [%g:2] \n" \
 				"unset border \n" \
-				"$POV << EOD\n", C, mu, time, x);
+				"$POV << EOD\n", C, mu, h, tau, mode_of_task, time, x, low_bound_of_color);
 		else
-				printf("set terminal png size 1000, 600 \n" \
+		printf("set terminal pngcairo size 2000, 600 \n" \
 				"set encoding utf8 \n" \
-				"set output 'gnuplot_heatmap_%g.png' \n" \
+				"set output 'gnuplot_heatmap_%g____h=%g_tau=%g__%d.png' \n" \
 				"set palette viridis \n" \
 				"set colorbox vertical default \n" \
 				"set rmargin at screen 0.9 \n" \
 				"set xrange [0:%lf] \n" \
 				"set yrange [0:%lf] \n" \
+				"set cbrange [%g:2] \n" \
 				"unset border \n" \
-				"$POV << EOD\n", mu, time, x);
+				"$POV << EOD\n", mu, h, tau, mode_of_task, time, x, low_bound_of_color);
 
 		for (int i = 0; i < N; i++) {
 			set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, i, M, mode);
-			if (i % (N / 400) == 0) print_H_like_gnu(H, (i + 1) * tau, h, M, mode);
+			if (i % (N / 800) == 0) print_H_like_gnu(H, (i + 1) * tau, h, M, mode);
 			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
 			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
 		}
@@ -586,7 +625,7 @@ int main(int argc, char *argv[]) {
 
 		for (int i = 0; i < N; i++) {
 			set_matrix_H(H_under, H_main, H_above, V, H, H_prev, tau, h, i, M, mode);
-			if (i % (N / 400) == 0) print_H_like_gnu(H, (i + 1) * tau, h, M, mode);
+			if (i % (N / 800) == 0) print_H_like_gnu(H, (i + 1) * tau, h, M, mode);
 			set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
 			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
 		}

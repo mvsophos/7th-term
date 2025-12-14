@@ -86,9 +86,12 @@ void print_array__H(double *array, double time, int n, number_task mode) {
 void print_H_like_gnu(double *z, double time_x, double h, int M, number_task mode) {
 	int j = 0;
 	int shag_ = ((M / M_dpi) == 0) ? 1 : M / M_dpi;
+	double buferbom = (mode == number_task::first) ? 1.1 : 1;
+	buferbom = 0;
 	for (int i = 0 + j; i < M - j; i += shag_) {
 		//if ((i % (M / 300) == 0) || (i == M - 1 - j)) printf("%lf  %lf  %lf \n", time_x, i * h, z[i]);
-		printf("%lf  %lf  %lf \n", time_x, i * h, z[i]);
+		printf("%lf  %lf  %lf \n", time_x, i * h, z[i] - buferbom);
+		//printf("%lf  %lf  %lf \n", time_x, i * h, z[i]);
 	}
 	printf("\n");
 }
@@ -124,7 +127,7 @@ std::string print_H_in_file(double *H, double *H_prev, double h, int M, int mode
 	int shag_ = ((M / M_dpi) == 0) ? 1 : M / M_dpi;
 
 	for (int i = 0; i < M; i += shag_) {
-		out << (i + 0.5) * h << " " << H[i] - H_prev[i] << "\n";
+		out << (i + 0.5) * h << " " << H[i] /* - H_prev[i] */ << "\n";
 	}
 
 	out.close ();
@@ -577,7 +580,7 @@ int main(int argc, char *argv[]) {
 		double low_bound_of_color = (mode_of_task == 1) ? 1 : 0;
 
 		if (rezh == mode_my_mode::C_rho)
-		printf("set terminal png size 2000, 600 \n" \
+		printf("set terminal png size 800, 600 \n" \
 				"set encoding utf8 \n" \
 				"set output 'gnuplot_heatmap__%d__%g____h=%g_tau=%g__%d.png' \n" \
 				"set palette viridis \n" \
@@ -589,7 +592,7 @@ int main(int argc, char *argv[]) {
 				"unset border \n" \
 				"$POV << EOD\n", C, mu, h, tau, mode_of_task, time, x, low_bound_of_color);
 		else
-		printf("set terminal pngcairo size 2000, 600 \n" \
+		printf("set terminal pngcairo size 800, 600 \n" \
 				"set encoding utf8 \n" \
 				"set output 'gnuplot_heatmap_%g____h=%g_tau=%g__%d.png' \n" \
 				"set palette viridis \n" \

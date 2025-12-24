@@ -1,8 +1,6 @@
 # вот как вызывать для параметров C=10 и mu = 0.001
 # table_latex_4_task.sh 10 0.001
 
-g++ fourth_part.cpp
-
 C=$1
 mu=$2
 filename="TABLE_C=$1_rho=$2.txt"

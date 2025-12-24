@@ -3,7 +3,7 @@
 
 C=$1
 mu=$2
-filename="TABLE_C=$1_rho=$2.txt"
+filename="TABLE_rho=$2.txt"
 
 echo -E "\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ C=$C, \; \mu = $mu$} \\\\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\\\ \hline"                                                    >  $filename
 for rho in {1..7}
@@ -14,7 +14,7 @@ do
                 then
                         echo -n "$rho "                                                         >> $filename
                 fi
-                echo -n "& $(echo -1 | ./a.out 1000 50000 0      $u $rho      $C $mu 10) "      >> $filename
+                echo -n "& $(echo -1 | ./a.out 1000 100000 1      $u $rho      $C $mu 10) "      >> $filename
         done
         echo -E "\\\\ \hline"                                                                   >> $filename
 done

@@ -1,0 +1,2462 @@
+\documentclass[12pt]{article} %draft - чтобы видеть где есть выход за пределы страницы
+\usepackage[utf8]{inputenc}
+\usepackage[T2A]{fontenc} % нужно только для того чтобы он не выдавал какое-то длинное предупреждение
+\usepackage[english,russian]{babel}
+\usepackage{graphicx} %этот пакет для вставки графики в документ
+\usepackage{diagbox} % for \diagbox in tables
+\usepackage{amsmath}
+\usepackage{enumerate}
+\usepackage{makecell}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{comment}
+\usepackage{units}
+
+\usepackage{geometry}
+\geometry{left = 1.5cm}
+\usepackage[colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=blue]{hyperref} % для кликабельных ссылок
+\frenchspacing
+\theoremstyle{definition}
+\newtheorem{theo}{Теорема}
+\newtheorem{df}{Определение}
+\newtheorem{lem}{Лемма}
+\newtheorem{sled}{Следствие}
+
+\begin{document}
+\mathsurround = 0pt %для окружения математических формул
+\setlength{\parindent}{0cm} %удалил отступы в абзацах
+
+\begin{titlepage}
+\centerline{Московский государственный университет имени М. В. Ломоносова}
+\centerline{\rule{15cm}{0.25mm}}
+\vfill
+\Huge
+\begin{centering}
+{\bfseries Отчет о схеме \\[0.25cm] Соколова А.Г.}
+\normalsize
+\vskip2cm
+\begin{flushright}Мещеряков Вадим\\группа 410
+\end{flushright}
+\end{centering}
+\vfill
+\hrulefill
+\small
+\centerline{Москва, 2025}
+\end{titlepage}
+
+
+
+\newpage
+\phantomsection % Важно для корректной работы гиперссылок
+\tableofcontents
+\thispagestyle{empty} % Убираем номер страницы
+\newpage
+
+\section{Постановка задачи}
+
+Рассмотрим систему дифференциальных уравнений, описывающую нестационарное одномерное движение вязкого баротропного газа:
+\begin{equation}
+\begin{cases}
+$$
+\displaystyle\frac {\partial \rho} {\partial t} + \frac{\partial \rho u} {\partial x} = 0,
+\\
+\displaystyle\frac {\partial \rho u} {\partial t} + \frac {\partial \rho u^2} {\partial x} + \frac {\partial p} {\partial x} = \mu \frac {\partial^2 u} {\partial x^2} + \rho f.
+$$
+\end{cases}
+\end{equation}
+Где введены следующие обозначения:
+\begin{itemize}
+    \item $\mu > 0$ - вязскость газа,
+    \item $(t, x) \in [0, T] \times [0, X]$,
+    \item $\rho = \rho(t, x)$ - функция плотности газа,
+    \item $u = u (t, x)$ - функция скорости газа,
+    \item $p = p (\rho)$ - функция давления газа и $p = C_{\rho} \rho \text{ или } p = \rho^{\gamma}$
+\end{itemize}
+С начальными условиями
+$$\left. (\rho, u)\right|_{t = 0} = (\rho_0, u_0)$$
+и граничными условиями непротекания:
+\begin{equation}
+u(t,X_0) = u(t,X_1) = 0.
+\end{equation}
+
+
+
+
+\newpage
+
+\section{Разностная схема}
+На каждом шаге по $n = 1, 2, 3, \dots, N$ нам надо будет решать две системы линейных уравнений вида $Ax = d$, где
+\begin{equation}
+A = 
+    \begin{pmatrix}
+         a_0 & b_0 & 0 & 0 &  \dots  & 0 & 0 & 0 \\
+         c_1 & a_1 & b_1 & 0 & \dots & 0 & 0 & 0 \\
+         0 & c_2 & a_2 & b_2 & \dots & 0 & 0 & 0 \\
+         0 & 0 & c_3 & a_3 & \ddots & 0 & 0 & 0 \\
+         \vdots & \vdots & \vdots & \ddots & \ddots & \ddots & \vdots & \vdots \\
+         0 & 0 & 0 & 0 & \ddots & a_{M-2} & b_{M-2} & 0 \\
+         0 & 0 & 0 & 0 & \dots & c_{M-1} & a_{M-1} & b_{M-1} \\
+         0 & 0 & 0 & 0 & \dots & 0 & c_M & a_M
+    \end{pmatrix} 
+\end{equation}
+
+Рассматривается разностная схема А. Г. Соколова. Она имеет следующий вид.
+\begin{equation}
+\left\{
+\begin{aligned}
+& H_t + (\sigma \{ \hat{H}, V\})_x = 0, & 0 \leq m < M, \\
+& \hat{H}_s V_t + \hat{H}_s \delta \{ \hat{V}, V\} + \mathrm{Gr}^{h_p}(\hat{H}) = \mu \hat{V}_{xx} + \hat{H}_s f, & \text{при } \hat{H}_s \neq 0, \\
+& \hat{V} = 0, & \text{при } \hat{H}_s = 0, \; 0 < m < M, \\
+& \hat{V}_0 = \hat{V}_M = 0.
+\end{aligned}
+\right.
+\end{equation}
+
+\(
+\text{При этом } \; \mathrm{Gr}^h p(H) = \frac{\gamma}{\gamma - 1} H_{\bar{s}}((H)^{\gamma - 1})_{\bar{x}}, \; \text{если \( p = \rho^\gamma \),}
+\text{ и } \mathrm{Gr}^h p(H) = p(H)_{\bar{x}}, \; \text{если \( p = C\rho \).}
+\)
+
+По смыслу уравнений, первое уравнение находит плотность в следующий момент времени $\hat H$, а второе находит скорость распространения $\hat V$.
+
+$ \text{$H$ задано на сетке } \omega_h^\frac{1}{2} = \left \{  mh + \frac{h}{2}, \; 0 \leqslant m < M \right \} $.\\
+$ \text{$V$ задано на сетке } \omega_h = \left\{  mh, \; 0 \leqslant m \leqslant M \right\} $.
+
+Значит сначала требуется найти из первого уравнения $\hat H$, а затем, зная их, найти $\hat V$.
+\begin{flushleft}
+$$\hat{H}_{\bar s} V_t + \hat{H}_{\bar s} \delta \{ \hat V, V \} = \frac{H^{n+1}_m - H^{n+1}_{m-1}}{2} \cdot \left( \frac{V^{n+1}_m - V^n_m}{\tau} + \begin{cases} \frac{V^n_m (V^{n+1}_m - V^{n+1}_{m-1})}{h}, & \text{если } V^n_m \geqslant 0, \\ \frac{V^n_m (V^{n+1}_{m+1} - V^{n+1}_m)}{h}, & \text{если } V^n_m < 0. \end{cases} \right) $$
+
+$$ \text{Для } p = \rho^{\gamma}: \quad \mathrm{Gr}^h (\hat H) = \frac{\gamma}{\gamma - 1} \left( \frac{H_m^{n+1} + H_{m-1}^{n+1}}{2} \right) \cdot  \left( \frac{(H_m^{n+1})^{\gamma-1} - (H_{m-1}^{n+1})^{\gamma-1}}{h} \right). $$
+
+$$ \text{Для } p = C\rho: \quad \mathrm{Gr}^h (\hat H) = \frac{p(H_m^{n+1}) - p(H_{m-1}^{n+1})}{h} = \frac{C}{h} \left( H_m^{n+1} - H_{m-1}^{n+1} \right). $$
+\end{flushleft}
+
+Распишем первое уравнение системы (закон сохранения массы):
+\begin{multline} \nonumber
+\frac{H^{n+1}_m - H^n_m}{\tau} + \\
++ \frac{1}{2h} \left((V^{n}_m - |V^{n}_m|)H^{n+1}_{m+1} + (V^{n}_{m-1} + |V^{n}_{m-1}| - V^{n}_{m+1} + |V^{n}_{m+1}|)H^{n+1}_m -(V^{n}_m + |V^{n}_m|)H^{n+1}_{m-1} \right) = 0, \\ 0 \leqslant m < M.
+\end{multline}
+
+Распишем второе уравнение системы:
+\begin{itemize}
+\item $\text{Для } p = \rho^{\gamma}:$
+\begin{multline} \nonumber
+\frac{H_m^{n+1} + H_{m-1}^{n+1}}{2} \cdot \left( \frac{V_m^{n+1} - V_m^n}{\tau}
++ V_m^n \cdot 
+\begin{cases}
+\frac{V_m^{n+1} - V_{m-1}^{n+1}}{h}, & V_m^n \geqslant 0 \\
+\frac{V_{m+1}^{n+1} - V_m^{n+1}}{h}, & V_m^n < 0
+\end{cases} \right) + \\
++ \frac{\gamma}{\gamma - 1} \left( \frac{H_m^{n+1} + H_{m-1}^{n+1}}{2} \right) \cdot  \left( \frac{(H_m^{n+1})^{\gamma-1} - (H_{m-1}^{n+1})^{\gamma-1}}{h} \right) = \\
+= \mu \frac{V_{m+1}^{n+1} - 2V_m^{n+1} + V_{m-1}^{n+1}}{h^2} 
++ \frac{H_m^{n+1} + H_{m-1}^{n+1}}{2} f_m^n, \\ 0 < m < M, \; \text{ при } \widehat{H}_{\bar{s}} \neq 0,
+\end{multline}
+\begin{multline} \nonumber
+    V_m^{n+1} = 0 \\ 0 < m < M, \; \text{ при } \widehat{H}_{\bar{s}} \neq 0,
+\end{multline}
+\( V_0^{n+1} = V_{M}^{n+1} = 0 \).
+
+\item $\text{Для } p = C\rho: $
+\begin{multline} \nonumber
+\frac{H_m^{n+1} + H_{m-1}^{n+1}}{2} \cdot \left( \frac{V_m^{n+1} - V_m^n}{\tau}
++ V_m^n \cdot 
+\begin{cases}
+\frac{V_m^{n+1} - V_{m-1}^{n+1}}{h}, & V_m^n \geqslant 0 \\
+\frac{V_{m+1}^{n+1} - V_m^{n+1}}{h}, & V_m^n < 0
+\end{cases} \right) + \\ 
++ \frac{C}{h} \left( H_m^{n+1} - H_{m-1}^{n+1} \right)
+= \mu \frac{V_{m+1}^{n+1} - 2V_m^{n+1} + V_{m-1}^{n+1}}{h^2} 
++ \frac{H_m^{n+1} + H_{m-1}^{n+1}}{2} f_m^n, \\ 0 < m < M, \; \text{ при } \widehat{H}_{\bar{s}} \neq 0.
+\end{multline}
+\begin{multline} \nonumber
+    V_m^{n+1} = 0 \\ 0 < m < M, \; \text{ при } \widehat{H}_{\bar{s}} \neq 0,
+\end{multline}
+\( V_0^{n+1} = V_{M}^{n+1} = 0 \).
+\end{itemize}
+
+Для $m = 0$ первое уравнение системы имеет вид:
+$$
+\frac{H^{n+1}_0 - H^n_0}{\tau} + \frac{1}{2h} \left((V^{n}_0 - |V^{n}_0|)H^{n+1}_{1} + (- V^{n}_{1} + |V^{n}_{1}|)H^{n+1}_0 \right) = 0.
+$$
+
+Для $m = M$ первое уравнение системы имеет вид:
+$$
+\frac{H^{n+1}_M - H^n_M}{\tau} + \frac{1}{2h} \left((V^{n}_{M-1} + |V^{n}_{M-1}|)H^{n+1}_M -(V^{n}_M + |V^{n}_M|)H^{n+1}_{M-1} \right) = 0.
+$$
+
+
+\subsection{Коэффициенты матрицы для плотности}
+Для матрицы $A$ коэффициенты определяются формулами ниже:
+\subsubsection*{Главная диагональ:}
+\begin{align*}
+a_0 = \text{H}_{\text{main}}[0] &= 1 + \frac{\tau}{2h}(V_1 + |V_1|) \\
+a_i = \text{H}_{\text{main}}[i] &= 1 + \frac{\tau}{2h}(V_{i+1} + |V_{i+1}| - V_i + |V_i|), \quad i=1,\ldots,M-2 \\
+a_{M-1} = \text{H}_{\text{main}}[M-1] &= 1 + \frac{\tau}{2h}(-V_{M-1} + |V_{M-1}|)
+\end{align*}
+
+\subsubsection*{Наддиагональ:}
+\begin{align*}
+b_0 = \text{H}_{\text{above}}[0] &= \frac{\tau}{2h}(V_1 - |V_1|) \\
+b_i = \text{H}_{\text{above}}[i] &= \frac{\tau}{2h}(V_{i+1} - |V_{i+1}|), \quad i=1,\ldots,M-2 \\
+b_{M-1} = \text{H}_{\text{above}}[M-1] &= 0
+\end{align*}
+
+\subsubsection*{Поддиагональ:}
+\begin{align*}
+c_0 = \text{H}_{\text{under}}[0] &= 0 \\
+c_i = \text{H}_{\text{under}}[i] &= -\frac{\tau}{2h}(V_i + |V_i|), \quad i=1,\ldots,M-2 \\
+c_{M-1} = \text{H}_{\text{under}}[M-1] &= -\frac{\tau}{2h}(V_{M-1} + |V_{M-1}|)
+\end{align*}
+
+\subsubsection*{Правая часть:}
+\[ \text{f}[i] = \text{H}_{\text{prev}}[i] + \tau f_1 \left(t_{\text{step}}, \; \left(i+\frac12 \right) \cdot h \right) \]
+
+\subsection{Коэффициенты матрицы для скорости}
+\subsubsection*{Главная диагональ:}
+\begin{align*}
+a_i = V_{\text{main}}[i] &= \frac{1}{2}(\text{H}_i + \text{H}_{i-1})\left(\frac{1}{\tau} + \frac{1}{h}|V_{\text{prev},i}|\right) + \frac{2\mu}{h^2}, \quad i=1,\ldots,M-1
+\end{align*}
+\subsubsection*{Наддиагональ:}
+\begin{align*}
+b_i = V_{\text{above}}[i] &= \frac{1}{2}(\text{H}_i + \text{H}_{i-1})\frac{1}{h}\cdot\frac{1}{2}(V_{\text{prev},i} - |V_{\text{prev},i}|) - \frac{\mu}{h^2}, \quad i=1,\ldots,M-1
+\end{align*}
+\subsubsection*{Поддиагональ:}
+\begin{align*}
+c_i = V_{\text{under}}[i] &= -\frac{1}{2}(\text{H}_i + \text{H}_{i-1})\frac{1}{h}\cdot\frac{1}{2}(V_{\text{prev},i} + |V_{\text{prev},i}|) - \frac{\mu}{h^2}, \quad i=1,\ldots,M-1
+\end{align*}
+
+\subsubsection*{Правая часть (два режима):}
+\textbf{Режим 1} ($\rho ^ \gamma$ степенной):
+\begin{multline*}
+\text{f}[i] = \frac{1}{2}(\text{H}_i + \text{H}_{i-1})\frac{V_{\text{prev}, \, i}}{\tau} + \frac{1}{2}(\text{H}_i + \text{H}_{i-1})f_2(t_{\text{step}}, \; ih)
+- \frac{\gamma}{\gamma-1}\frac{1}{h}\cdot\frac{1}{2}(\text{H}_i + \text{H}_{i-1}) \left(\text{H}_i^{\gamma-1} - \text{H}_{i-1}^{\gamma-1} \right)
+\end{multline*}
+\textbf{Режим 2} ($C\rho$):
+\[
+\text{f}[i] = \frac{1}{2}(\text{H}_i + \text{H}_{i-1})\frac{V_{\text{prev}, \, i}}{\tau} + \frac{1}{2}(\text{H}_i + \text{H}_{i-1})f_2(t_{\text{step}}, \; ih) - C\frac{1}{h} \left(\text{H}_i - \text{H}_{i-1} \right)
+\]
+\subsubsection*{Граничные условия:}
+\begin{align*}
+V_{\text{main}}[0] &= 1, \quad V_{\text{above}}[0] = 0, \quad V_{\text{under}}[0] = 0, \quad \text{f}[0] = 0 \\
+V_{\text{main}}[M] &= 1, \quad V_{\text{above}}[M] = 0, \quad V_{\text{under}}[M] = 0, \quad \text{f}[M] = 0
+\end{align*}
+
+
+
+
+\newpage
+
+\section{Отладочный тест}
+Для отладочного теста будет использована систиема уравнений:
+$$\left\{
+\begin{aligned}
+    &\frac{\partial \rho}{\partial t} + \frac{\partial (\rho u)}{\partial x} = f_0, \\
+    &\rho \frac{\partial u}{\partial t} + \rho u \frac{\partial u}{\partial x} + \frac{\partial p}{\partial x} = \mu \frac{\partial^2 u}{\partial x^2} + \rho f.
+\end{aligned}
+\right.$$
+Ниже представлены гладкие функции скорости и плотности --- $u(t, \, x)$ и $\rho(t, \, x)$ соответственно. Они и будут использоваться для отладочного теста:
+$$\left\{
+\begin{aligned}
+    & u(t,x) = \cos(2\pi t) \cdot \sin(\pi x^2), \\
+    & \rho(t,x) = e^t \left(\cos(\pi x) + 1.5\right).
+\end{aligned}
+\right.$$
+Ими заданы функции $f_0(t, \, x)$ и $f(t, \, x, \, \mu)$, с помощью системы.
+$$\text{При этом во втором уравнении функция } f(t, \, x) = \left[
+\begin{aligned}
+    & f_{\text{exp}}, \text{ в случае, когда } \; p = \rho^\gamma, \\
+    & f_{\text{lin}}, \text{ в случае, когда } \; p = C \rho, \text{ где }
+\end{aligned}
+\right.$$
+\begin{multline} \nonumber
+f_0(t,x) = e^t \left(\cos(\pi x) + 1.5\right) + \\ + e^t \cos(2\pi t) \cdot \left(
+    2\pi x \cos(\pi x^2) \left(\cos(\pi x) + 1.5\right) 
+    - \pi \sin(\pi x) \sin(\pi x^2) \right),
+\end{multline}
+\begin{multline} \nonumber
+    f_{\text{exp}}(t,x,\mu) = -2\pi \sin(2\pi t) \sin(\pi x^2) + \\
+    + 2\pi x \cos^2(2\pi t) \sin(\pi x^2) \cos(\pi x^2) - \\
+    - \frac{\gamma \pi \left(\cos(\pi x) + 1.5\right)^{\gamma-1} \sin(\pi x)}{e^{t(2-\gamma)}} - \\
+    - \frac{\mu \cos(2\pi t) \left(2\pi \cos(\pi x^2) - 4\pi^2 x^2 \sin(\pi x^2)\right)}{e^t \left(\cos(\pi x) + 1.5\right)},
+\end{multline}
+\begin{multline} \nonumber
+f_{\text{lin}}(t,x,C) = -2\pi \sin(2\pi t) \sin(\pi x^2)
+    + 2\pi x \cos^2(2\pi t) \sin(\pi x^2) \cos(\pi x^2) - \\
+    - \frac{C \pi \sin(\pi x)}{\cos(\pi x) + 1.5}
+    - \frac{\mu \cos(2\pi t) \left(2\pi \cos(\pi x^2) - 4\pi^2 x^2 \sin(\pi x^2)\right)}{e^t \left(\cos(\pi x) + 1.5\right)}.
+\end{multline}
+
+\subsection{Результаты для линейного давления}
+Рассматривается приведенная выше система уравнений, для которой известно точное решение. Рассмотрим этот тест, чтобы установить правильность реализации схемы А. Г. Соколова. Для этого сравним точное решение и решение полученное по схеме. Очевидно, разница между точным и численным решением будет зависеть от $C, \mu, h$ и $\tau$, а также от функции давления, поэтому рассмотрим все комбинации этих параметров и приведем нормы в виде таблиц для сравнения.
+
+Приведенные ниже таблицы содержат 2 числа в каждой ячейке. Число слева --- это норма в пространстве $C[0,\,1]$, а число справа --- это норма в пространстве $L^2[0,\,1]$. Таблицы отображают правильность приближения в зависимости от параметров задачи: коэффициентов вязкости и сжимаемости, а так же шагов по пространству и по времени.
+
+$$ \boxed{
+\left\| f \right\|_{C} = \max_{m} \left| f_m \right|, \qquad
+\left\| f \right\|_{L^h_2} = \sqrt{h \sum_{m=0}^{M} f_m^2}
+} $$
+ \begin{center} 
+ \begin{flushleft}
+     $ \mu = 0.1, \; C = 1$ 
+ \end{flushleft}
+ \begin{tabular}{|c|c|c|c|c|} 
+ \hline 
+ $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1 &  7.447e-01,  3.491e-01  &  1.743e+00,  6.163e-01  &  3.011e+00,  6.705e-01  &  3.401e+00,  6.819e-01  \\
+\hline
+0.01 &  1.218e-01,  7.149e-02  &  1.485e-01,  6.482e-02  &  1.751e-01,  7.795e-02  &  1.776e-01,  7.929e-02  \\
+\hline
+0.001 &  2.076e-01,  1.108e-01  &  9.405e-03,  6.494e-03  &  1.629e-02,  6.849e-03  &  1.783e-02,  7.923e-03  \\
+\hline
+0.0001 &  2.161e-01,  1.151e-01  &  2.110e-02,  1.211e-02  &  1.004e-03,  6.563e-04  &  1.644e-03,  6.886e-04  \\
+\hline
+ \end{tabular} 
+ \end{center}
+
+ \begin{center}
+ \begin{flushleft}
+      $ \mu = 0.1, \; C = 10$ 
+ \end{flushleft}
+ \begin{tabular}{|c|c|c|c|c|} 
+ \hline 
+ $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1 &  1.671e+01,  6.119e+00  &  3.734e+02,  4.168e+00  &  3.638e+03,  1.152e+02  &  2.034e+04,  2.348e+02  \\
+\hline
+0.01 &  4.999e-02,  2.711e-02  &  1.169e+01,  1.865e+00  &  2.714e+02,  1.032e+01  &  7.000e+02,  7.791e+00  \\
+\hline
+0.001 &  2.175e-02,  1.341e-02  &  9.146e-03,  5.252e-03  &  5.048e-03,  2.695e-03  &  4.610e-03,  2.453e-03  \\
+\hline
+0.0001 &  2.133e-02,  1.240e-02  &  5.088e-03,  3.394e-03  &  9.474e-04,  5.501e-04  &  5.044e-04,  2.698e-04  \\
+\hline
+ \end{tabular} 
+ \end{center}
+
+ \begin{center} 
+ \begin{flushleft}
+      $\mu = 0.1, \; C = 100$ 
+ \end{flushleft}
+ \begin{tabular}{|c|c|c|c|c|} 
+ \hline 
+ $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1 &  8.965e+00,  4.550e+00  &  3.179e+02,  7.294e+00  &  4.016e+03,  4.483e+00  &  2.905e+04,  2.924e+02  \\
+\hline
+0.01 &  2.563e-02,  1.454e-02  &  1.745e+02,  1.800e+01  &  4.018e+03,  1.271e+02  &  2.750e+03,  3.530e+01  \\
+\hline
+0.001 &  2.231e-02,  1.133e-02  &  1.923e-03,  1.353e-03  &  4.549e+02,  1.480e+01  &  1.447e+04,  1.488e+02  \\
+\hline
+0.0001 &  2.194e-02,  1.165e-02  &  8.359e-04,  4.169e-04  &  2.027e-04,  1.398e-04  &  2.237e-04,  1.469e-04  \\
+\hline
+
+ \end{tabular} 
+ \end{center}
+
+ \begin{center} 
+\begin{flushleft}
+      $\mu = 0.01, \; C = 1$ 
+\end{flushleft}
+ \begin{tabular}{|c|c|c|c|c|} 
+ \hline 
+ $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1 &  1.081e+00,  3.412e-01  &  1.851e+02,  4.561e+00  &  2.083e+03,  1.673e+01  &  2.030e+04,  6.071e+01  \\
+\hline
+0.01 &  1.643e-01,  1.071e-01  &  1.332e-01,  7.204e-02  &  4.613e+01,  3.948e+00  &  4.711e+01,  6.066e+00  \\
+\hline
+0.001 &  2.265e-01,  1.343e-01  &  2.578e-02,  1.339e-02  &  1.605e-02,  7.619e-03  &  1.716e-02,  8.719e-03  \\
+\hline
+0.0001 &  2.340e-01,  1.379e-01  &  4.170e-02,  1.757e-02  &  2.886e-03,  1.495e-03  &  1.646e-03,  7.663e-04  \\
+\hline
+ \end{tabular} 
+ \end{center}
+
+
+ \begin{center} 
+  \begin{flushleft}
+      $\mu = 0.01, \; C = 10$ 
+ \end{flushleft}
+ \begin{tabular}{|c|c|c|c|c|} 
+ \hline 
+ $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1  &  1.892e+01,  6.560e+00  &  3.520e+02,  3.906e+00  &  3.677e+03,  4.175e+00  &  2.776e+04,  3.006e+02  \\
+\hline
+0.01  &  4.109e-02,  2.656e-02  &  4.715e+01,  8.762e+00  &  2.602e+02,  1.172e+01  &  2.606e+04,  2.668e+02  \\
+\hline
+0.001  &  3.508e-02,  1.948e-02  &  9.079e-03,  5.140e-03  &  4.590e+00,  1.731e+00  &  1.038e+03,  4.105e+01  \\
+\hline
+0.0001  &  3.486e-02,  1.931e-02  &  6.534e-03,  3.871e-03  &  9.528e-04,  5.446e-04  &  5.677e-04,  2.712e-04  \\
+\hline
+
+ \end{tabular} 
+ \end{center}
+
+
+ \begin{center} 
+  \begin{flushleft}
+      $\mu = 0.01, \; C = 100$ 
+ \end{flushleft}
+ \begin{tabular}{|c|c|c|c|c|} 
+ \hline 
+ $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1  &  3.262e+01,  3.828e+00  &  3.451e+02,  5.989e+00  &  3.951e+03,  1.250e+02  &  2.765e+04,  3.008e+02  \\
+\hline
+0.01  &  2.545e-02,  1.649e-02  &  3.902e+02,  4.288e+00  &  2.309e+03,  8.547e+01  &  4.114e+04,  4.114e+02  \\
+\hline
+0.001  &  2.332e-02,  1.272e-02  &  2.381e-03,  1.468e-03  &  2.291e+03,  4.869e+01  &  3.490e+01,  9.930e+00  \\
+\hline
+0.0001  &  2.294e-02,  1.300e-02  &  1.881e-03,  8.460e-04  &  2.485e-04,  1.498e-04  &  1.773e+03,  3.214e+01  \\
+\hline
+
+ \end{tabular} 
+ \end{center}
+
+
+ \begin{center} 
+  \begin{flushleft}
+      $\mu = 0.001, \; C = 1$ 
+ \end{flushleft}
+ \begin{tabular}{|c|c|c|c|c|} 
+ \hline 
+ $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1 &  1.115e+00,  3.466e-01  &  1.490e+02,  1.705e+01  &  1.730e+03,  1.930e+01  &  1.278e+04,  6.778e+01  \\
+\hline
+0.01 &  1.686e-01,  1.134e-01  &  1.342e-01,  7.422e-02  &  3.114e+03,  9.941e+01  &  3.504e+04,  3.509e+02  \\
+\hline
+0.001 &  2.402e-01,  1.389e-01  &  3.092e-02,  1.585e-02  &  1.785e-02,  7.904e-03  &  2.378e+03,  3.172e+01  \\
+\hline
+0.0001 &  2.478e-01,  1.424e-01  &  4.693e-02,  1.948e-02  &  3.445e-03,  1.825e-03  &  1.842e-03,  7.958e-04  \\
+\hline
+
+ \end{tabular} 
+ \end{center}
+
+
+ \begin{center} 
+  \begin{flushleft}
+      $\mu = 0.001, \; C = 10$ 
+ \end{flushleft}
+ \begin{tabular}{|c|c|c|c|c|} 
+ \hline 
+ $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1 &  1.231e+01,  5.541e+00  &  3.848e+02,  4.418e+00  &  3.511e+03,  1.111e+02  &  3.492e+04,  3.492e+02  \\
+\hline
+0.01 &  4.161e-02,  2.732e-02  &  3.743e+02,  4.094e+00  &  2.331e+03,  7.551e+01  &  2.712e+04,  3.035e+02  \\
+\hline
+0.001 &  3.836e-02,  2.123e-02  &  9.288e-03,  5.305e-03  &  1.446e+03,  5.110e+01  &  1.205e+04,  1.477e+02  \\
+\hline
+0.0001 &  3.814e-02,  2.113e-02  &  6.841e-03,  4.176e-03  &  9.855e-04,  5.663e-04  &  2.106e+01,  2.776e+00  \\
+\hline
+
+ \end{tabular} 
+ \end{center}
+
+
+ \begin{center} 
+  \begin{flushleft}
+      $\mu = 0.001, \; C = 100$ 
+ \end{flushleft}
+ \begin{tabular}{|c|c|c|c|c|} 
+ \hline 
+ $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1 &  3.264e+01,  3.830e+00  &  3.882e+02,  4.455e+00  &  3.460e+03,  1.109e+02  &  3.492e+04,  5.252e+01  \\
+\hline
+0.01 &  2.550e-02,  1.701e-02  &  1.941e+02,  2.222e+01  &  4.200e+03,  1.329e+02  &  3.493e+04,  3.804e+01  \\
+\hline
+0.001 &  2.338e-02,  1.288e-02  &  2.481e-03,  1.503e-03  &  2.261e+03,  7.767e+01  &  1.371e+04,  8.631e+01  \\
+\hline
+0.0001 &  2.300e-02,  1.316e-02  &  2.044e-03,  9.163e-04  &  2.589e-04,  1.533e-04  &  8.495e+03,  6.531e+01  \\
+\hline
+
+ \end{tabular} 
+ \end{center}
+
+
+ 
+
+\subsection{Результаты для нелинейного давления}
+
+\begin{center} 
+\begin{flushleft}
+    $\mu = 0.1$
+\end{flushleft}
+\begin{tabular}{|c|c|c|c|c|} \hline $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1
+&  6.435e-01,  3.776e-01  &  6.467e-01,  4.241e-01  &  6.467e-01,  4.285e-01  &  6.467e-01,  4.289e-01  \\
+\hline
+0.01
+&  6.729e-02,  3.948e-02  &  6.762e-02,  4.434e-02  &  6.762e-02,  4.480e-02  &  6.762e-02,  4.485e-02  \\
+\hline
+0.001
+&  6.759e-03,  3.966e-03  &  6.792e-03,  4.454e-03  &  6.792e-03,  4.500e-03  &  6.792e-03,  4.505e-03  \\
+\hline
+0.0001
+&  6.762e-04,  3.968e-04  &  6.795e-04,  4.456e-04  &  6.795e-04,  4.502e-04  &  6.795e-04,  4.507e-04  \\
+\hline
+\end{tabular} \end{center}
+
+
+% эта таблица в целом нормальная
+\begin{center} 
+\begin{flushleft}
+    $\mu = 0.01$ 
+\end{flushleft}
+\begin{tabular}{|c|c|c|c|c|} \hline $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1
+&  7.086e-01,  3.783e-01  &  8.383e-01,  5.462e-01  &  8.651e-01,  5.680e-01  &  8.681e-01,  5.703e-01  \\
+\hline
+0.01
+&  3.218e-01,  2.001e-01  &  2.277e-01,  6.652e-02  &  2.451e-01,  8.444e-02  &  2.458e-01,  8.656e-02  \\
+\hline
+0.001
+&  4.587e-01,  2.581e-01  &  4.516e-02,  2.660e-02  &  2.603e-02,  7.279e-03  &  2.623e-02,  8.794e-03  \\
+\hline
+0.0001
+&  4.782e-01,  2.643e-01  &  5.986e-02,  3.126e-02  &  4.618e-03,  2.767e-03  &  2.638e-03,  7.352e-04  \\
+\hline
+\end{tabular} \end{center}
+
+\begin{center} 
+\begin{flushleft}
+    $\mu = 0.001$ 
+\end{flushleft}
+\begin{tabular}{|c|c|c|c|c|} \hline $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001\\
+\hline
+0.1
+&  6.310e-01,  7.559e-01  &  6.423e-01,  8.920e-01  &  1.014e+00,  1.198e+00 &  2.211e+00,  1.107e+00  \\
+\hline
+0.01
+&  2.385e-01,  1.017e-01  &  1.032e-01,  6.414e-02  &  3.389e-01,  2.549e-01  &  3.389e-01,  1.248e+00  \\
+\hline
+0.001
+&  4.796e-01,  8.122e-02  &  5.570e-02,  2.240e-02  &  6.397e-02,  4.253e-02  &  6.447e-01,  3.672e-01  \\
+\hline
+0.0001
+&  3.394e-01,  5.122e-02  &  3.398e-02,  1.241e-02  &  1.468e-02,  3.364e-03  &  7.595e-02,  2.253e-02  \\
+\hline
+\end{tabular} \end{center}
+
+
+\subsection{Метод вложенных сеток}
+Метод вложенных сеток позволяет определить правильность реализации схемы и понять насколько быстро сходится схема при уменьшении шагов. С помощью метода вложенных сеток можно будет установить насколько точно сходится схема в зависимости от параметров $\mu$ и $C$.
+
+Так как значения необходимо сравнивать в одних и тех же точках на прямой, то вместо удвоения сеток, рассматривается вложенная сетка с утроенным количеством узлов. Эта необходимость обусловлена тем, что схема Соколова рассматривает плотность в точках вида $x_k = (k + \nicefrac{1}{2}) \cdot h, \text{ где } k\in \{0,\,1,\ldots,\,M-1\}$. К примеру, рассмотрим сетки $\omega^0$ и $\omega^1$ на отрезке $[0, \, 1]$ из $M$ и $3M$ сегментов, соответственно. Нумерация сегментов ведется с левого конца отрезка начиная с 0. Середина сегмента с номером 0 на сетке $\omega^0$ соответствует середине сегмента номер 1 на сетке $\omega^1$. Аналогично эта же точка будет иметь другой номер на вложенной сетке $\omega^2$ с $9M$ сегментами. Итак, на сетке $\omega^0$ точки с номерами $0, \, 1, \, 2, \, 3, \, 4, \ldots$ соответствуют точкам с номерами $1, \, 4, \, 7, \, 10, \, 13, \ldots$ на сетке $\omega^1$, и эти же точки соответствуют точкам с номерами $4, \, 13, \, 22,\, 31,\, 40, \ldots$ на сетке $\omega^2$. Эти точки являются одними и теми же точками на отрезке $[0,\,1]$, но имеют разную нумерацию из-за разных шагов сетки.
+
+В таблицах использованы нормы:
+$$
+\boxed{
+\left\| f \right\|_{C} = \max_{m} \left| f_m \right|, \quad 
+\left\| f \right\|_{L^h_2} = \sqrt{h \sum_{m=0}^{M} f_m^2}, \quad
+\left\| f \right\|_{W^{1,h}_{2}} = \sqrt{\left\| f \right\|^2_{L^h_2} + h \sum_{m=1}^{M} \left( \frac{f_m - f_{m-1}}{h} \right)^2}
+}
+$$
+\subsubsection{Линейное давление}
+Для иллюстрации были взяты шаги $M=N=100$, то есть $h=\tau=0.01$. $v^k$ --- это численное решение полученное на сетке $\omega^k$, $v$ --- это численное решение полученное на сетке $\omega^0$, а $u$ --- это точное решение.
+
+\vspace{10pt}
+
+\begin{tabular}{ccc}
+\centering    \begin{tabular}{ |c|c| } \hline    & $ C = 1, \; \mu = 0.1 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 9.600600e-02 \\ 4.259744e-02 \\ 2.286887e-01 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 1.306490e-01 \\ 5.734384e-02 \\ 3.096443e-01 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 1.425090e-01 \\ 6.232188e-02 \\ 3.372273e-01 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 1.484980e-01 \\ 6.482281e-02 \\ 3.511351e-01 } \\ \hline
+\end{tabular}
+&
+\centering    \begin{tabular}{ |c|c| } \hline    & $ C = 1, \; \mu = 0.01 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 8.946900e-02 \\ 4.734013e-02 \\ 2.677085e-01 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 1.186820e-01 \\ 6.372459e-02 \\ 3.672175e-01 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 1.283740e-01 \\ 6.925911e-02 \\ 4.021761e-01 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 1.332100e-01 \\ 7.204049e-02 \\ 4.200448e-01 } \\ \hline
+\end{tabular}
+&
+\centering    \begin{tabular}{ |c|c| } \hline    & $ C = 1, \; \mu = 0.001 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 8.953000e-02 \\ 4.865043e-02 \\ 2.914612e-01 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 1.193000e-01 \\ 6.559127e-02 \\ 4.064939e-01 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 1.292430e-01 \\ 7.133024e-02 \\ 4.481194e-01 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 1.342110e-01 \\ 7.421791e-02 \\ 4.696637e-01 } \\ \hline
+\end{tabular}
+\end{tabular}
+
+\vspace{10pt}
+
+\begin{tabular}{ccc}
+
+\centering    \begin{tabular}{ |c|c| } \hline    & $ C = 10, \; \mu = 0.1 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 6.016e-03 \\ 1.996e-03 \\ 4.679e-02 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 8.093e-03 \\ 1.550e-03 \\ 1.090e-01 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 8.794e-03 \\ 9.720e-04 \\ 2.052e-01 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 9.145e-03 \\ 5.252e-03 \\ 1.869e-02 } \\ \hline
+\end{tabular}
+
+\centering    \begin{tabular}{ |c|c| } \hline    & $ C = 10, \; \mu = 0.01 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 5.943e-03 \\ 1.946e-03 \\ 6.108e-02 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 8.022e-03 \\ 1.515e-03 \\ 1.429e-01 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 8.725e-03 \\ 9.508e-04 \\ 2.693e-01 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 9.079e-03 \\ 5.140e-03 \\ 3.046e-02 } \\ \hline
+\end{tabular}
+
+\centering    \begin{tabular}{ |c|c| } \hline    & $ C = 10, \; \mu = 0.001 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 6.058e-03 \\ 2.004e-03 \\ 6.520e-02 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 8.195e-03 \\ 1.562e-03 \\ 1.529e-01 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 8.922e-03 \\ 9.810e-04 \\ 2.885e-01 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 9.288e-03 \\ 5.305e-03 \\ 3.583e-02 } \\ \hline
+\end{tabular}
+\end{tabular}
+
+\vspace{10pt}
+
+\begin{tabular}{ccc}
+
+\centering    \begin{tabular}{ |c|c| } \hline    & $ C = 100, \; \mu = 0.1 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 1.258e-03 \\ 5.159e-04 \\ 1.018e-02 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 1.699e-03 \\ 3.995e-04 \\ 2.232e-02 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 1.849e-03 \\ 2.504e-04 \\ 4.113e-02 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 1.924e-03 \\ 1.353e-03 \\ 2.737e-03 } \\ \hline
+\end{tabular}
+
+\centering    \begin{tabular}{ |c|c| } \hline    & $ C = 100, \; \mu = 0.01 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 1.563e-03 \\ 5.617e-04 \\ 9.489e-03 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 2.105e-03 \\ 4.340e-04 \\ 2.093e-02 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 2.289e-03 \\ 2.718e-04 \\ 3.867e-02 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 2.381e-03 \\ 1.468e-03 \\ 5.043e-03 } \\ \hline
+\end{tabular}
+
+\centering    \begin{tabular}{ |c|c| } \hline    & $ C = 100, \; \mu = 0.001 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 1.628e-03 \\ 5.756e-04 \\ 9.664e-03 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 2.193e-03 \\ 4.446e-04 \\ 2.133e-02 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 2.384e-03 \\ 2.784e-04 \\ 3.944e-02 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 2.480e-03 \\ 1.503e-03 \\ 5.526e-03 } \\ \hline
+\end{tabular}
+\end{tabular}
+
+\vspace{10pt}
+
+
+\subsubsection{Нелинейное давление}
+
+\begin{tabular}{ccc}
+\centering    \begin{tabular}{ |c|c| } \hline    & $ p=\rho^\gamma, \; \mu = 0.1 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 2.034e-02 \\ 4.561e-03 \\ 1.515e-01 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 2.750e-02 \\ 3.543e-03 \\ 3.557e-01 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 2.993e-02 \\ 2.223e-03 \\ 6.713e-01 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 1.071e+00 \\ 6.709e-01 \\ 3.824e+00 } \\ \hline
+\end{tabular}
+
+\centering    \begin{tabular}{ |c|c| } \hline    & $ p=\rho^\gamma, \; \mu = 0.01 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 2.415e-02 \\ 6.302e-03 \\ 4.631e-01 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 3.247e-02 \\ 4.922e-03 \\ 1.081e+00 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 3.526e-02 \\ 3.094e-03 \\ 2.036e+00 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 1.903e-01 \\ 1.145e-01 \\ 9.678e-01 } \\ \hline
+\end{tabular}
+
+\centering    \begin{tabular}{ |c|c| } \hline    & $ p=\rho^\gamma, \; \mu = 0.001 $\\ \hline
+ $ v - v^1 $  & 
+ \makecell[tl] { 3.228e-02 \\ 8.072e-03 \\ 6.224e-01 } \\ \hline
+ $ v - v^2 $  & 
+ \makecell[tl] { 4.301e-02 \\ 6.289e-03 \\ 1.443e+00 } \\ \hline
+ $ v - v^3 $  & 
+ \makecell[tl] { 4.657e-02 \\ 3.950e-03 \\ 2.712e+00 } \\ \hline
+ $ v - u $  & 
+ \makecell[tl] { 5.930e-02 \\ 3.100e-02 \\ 3.403e-01 } \\ \hline
+\end{tabular}
+\end{tabular}
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Выводы}
+При шагах сетки $h < \tau$ схема плохо сходится. Это вызвано худшей обусловленностью матрицы и, как следствие, возникновению особенностей, которые не устраняются, из-за консервативности схемы. Следует стремиться уменьшить шаг по времени.
+
+Наилучшие параметры для сходимости схемы это наименьшее $C$ и наибольшее $\mu$. 
+
+Из анализа норм на вложенных сетках становится ясно, что реализованная схема работает правильно. Как и ожидается, чем мельче сетка, тем тем ближе численное решение будет к точному.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+
+\newgeometry{left=1.5cm, right=1.5cm, top=2cm}
+
+\section{Негладкие начальные данные}
+Зададим на области $Q = [0; \, T] \times [0; \, 10]$ две задачи:
+
+
+$$
+\text{Первая задача:} \quad
+\begin{cases}
+\rho_0(x) = 
+\begin{cases}
+1, & x < 4.5 \text{ или } x > 5.5 \\
+2, & x \in [4.5; 5.5]
+\end{cases} \\
+u_0(x) \equiv 0, & x \in [0; 10] \\
+u(t, 0) = u(t, 10) = 0, & t \in [0; T] \\
+f \equiv 0
+\end{cases}
+$$
+$$
+\text{Вторая задача:} \quad
+\begin{cases}
+u_0(x) = 
+\begin{cases}
+0, & x < 4.5 \text{ или } x > 5.5 \\
+1, & x \in [4.5; 5.5]
+\end{cases} \\
+\rho_0(x) \equiv 1, & x \in [0; 10] \\
+u(t, 0) = u(t, 10) = 0, & t \in [0; T] \\
+f \equiv 0
+\end{cases}
+$$
+
+Ниже приведены таблицы, содержащие времена стабилизации $T_{st}$ решений первой системы и величины:
+\[ \left\|(H^{n_{st}}, V^{n_{st}}) - (\widetilde{H}, \widetilde{V})\right\|_{C_h} \]
+
+Функции $\widetilde{H}$ и $\widetilde{V}$ считаются постояннымми и равны $\frac{1}{M}\sum\limits_{m \in \omega_h^{1/2}} H_m^{n_{st}}$ и нулю соот\-вет\-ст\-венно, где $M$ это количество точек в сетке $\omega_h^\frac{1}{2}$. То есть в первой задаче $\left( \widetilde{H}, \widetilde{V} \right) = (1.1,\ldots, 1.1, 0, \ldots, 0)$, а во второй $\left( \widetilde{H}, \widetilde{V} \right) = (1,\ldots, 1, 0,\ldots, 0)$.
+
+При различных входных параметрах (строки таблицы) на разных вре\-мен\-ных сло\-ях (стол\-б\-цы таб\-ли\-цы).
+Также приведены таблицы, содержащие величины на разных временных слоях (столбцы таблицы) при различных входных параметрах (строки таблицы):
+\[ \Delta_m(n) = \frac{\sum\limits_{m \in \omega_h} H_m^n - \sum\limits_{m \in \omega_h} H_m^0}{\sum\limits_{m \in \omega_h} H_m^0} \]
+
+В большинстве проведенных численных экспериментов рассматривается $\varepsilon = 0.001$. Это оптимальное число для нахождения времени стабилизации и достаточное, чтобы увидеть как зависит решение от параметров задачи.
+
+В качестве основных результатов представлены таблицы: первая таблица задает таблицу невязок в зависимости от времени стабилизации (в столбце $n_{st}$ можно понять каким был взят $\varepsilon$), вторая таблица показывает массу на всем отрезке на соответствующем времени, которая необходима, чтобы показать закон сохранения массы.
+
+
+\newgeometry{left=2cm, right=1.5cm, top=0.5cm}
+
+\subsection{Первая задача}
+
+
+\begin{enumerate}
+\item $C = 1, \ \mu = 0.1$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 9.516e-02 & 5.305e-02 & 1.740e-02 & 9.854e-03 & 77.0500\\ 
+		\hline
+		0.1, 0.025 & 8.427e-02 & 4.164e-02 & 2.134e-02 & 9.980e-03 & 72.0000\\ 
+		\hline
+		0.1, 0.0125 & 9.044e-02 & 5.022e-02 & 1.988e-02 & 9.967e-03 & 71.9500\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & 2.878e-14 & 3.276e-14 & 3.402e-14 & 3.460e-14 \\ 
+		\hline
+		0.1, 0.025 & 8.446e-15 & 1.677e-14 & 8.343e-15 & 9.723e-15 \\ 
+		\hline
+		0.1, 0.0125 & 6.303e-15 & 8.453e-15 & 9.524e-15 & 1.005e-15 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 1, \mu = 0.01$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 1.270e-01 & 6.405e-02 & 4.962e-02 & 9.916e-03 & 341.7500\\ 
+		\hline
+		0.1, 0.025 & 2.705e-01 & 2.974e-02 & 3.087e-02 & 9.991e-03 & 351.5500\\ 
+		\hline
+		0.1, 0.0125 & 3.306e-02 & 2.327e-02 & 1.730e-02 & 9.997e-03 & 346.4375\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & 5.048e-14 & 3.683e-14 & 8.152e-15 & 4.297e-14 \\ 
+		\hline
+		0.1, 0.025 & 4.437e-14 & 7.689e-14 & 7.875e-14 & 8.278e-14 \\ 
+		\hline
+		0.1, 0.0125 & 8.534e-14 & 8.913e-14 & 8.919e-14 & 9.138e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 1, \ \mu = 0.001$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 3.773e-01 & 8.388e-02 & 4.968e-02 & 9.923e-03 & 2280.4430\\ 
+		\hline
+		0.1, 0.025 & 5.505e-01 & 8.773e-02 & 5.096e-02 & 1.000e-02 & 2257.5250\\ 
+		\hline
+		0.1, 0.0125 & 6.598e-01 & 8.833e-02 & 5.081e-02 & 9.995e-03 & 2187.3125\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & 1.988e-14 & 3.042e-14 & 2.624e-14 & 2.782e-14 \\ 
+		\hline
+		0.1, 0.025 & -6.097e-15 & -7.958e-15 & -8.044e-15 & -8.075e-15 \\ 
+		\hline
+		0.1, 0.0125 & -8.174e-15 & -5.239e-15 & -7.498e-15 & -9.450e-15 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 10, \ \mu = 0.1$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 3.055e-01 & 8.490e-02 & 3.398e-02 & 9.931e-03 & 50.4500\\ 
+		\hline
+		0.1, 0.025 & 3.759e-01 & 8.567e-02 & 3.562e-02 & 9.899e-03 & 49.6000\\ 
+		\hline
+		0.1, 0.0125 & 3.418e-01 & 8.385e-02 & 3.459e-02 & 9.996e-03 & 49.5375\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -2.894e-15 & -3.299e-15 & -3.448e-15 & -3.509e-15 \\ 
+		\hline
+		0.1, 0.025 & -2.571e-15 & -4.826e-15 & -6.091e-15 & -2.927e-15 \\ 
+		\hline
+		0.1, 0.0125 & -4.153e-15 & -4.217e-15 & -4.927e-15 & -5.255e-15 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 10, \ \mu = 0.01$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 9.426e-02 & 5.507e-02 & 2.663e-02 & 9.998e-03 & 283.8960\\ 
+		\hline
+		0.1, 0.025 & 4.755e-02 & 4.327e-02 & 2.242e-02 & 9.986e-03 & 281.3250\\ 
+		\hline
+		0.1, 0.0125 & 3.442e-02 & 4.964e-02 & 2.382e-02 & 1.000e-02 & 280.5125\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -4.437e-15 & -4.533e-15 & -4.569e-15 & -4.585e-15 \\ 
+		\hline
+		0.1, 0.025 & -2.557e-14 & -2.769e-14 & -2.875e-14 & -2.948e-14 \\ 
+		\hline
+		0.1, 0.0125 & -1.177e-14 & -1.660e-14 & -2.002e-14 & -2.274e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 10, \ \mu = 0.001$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 2.506e-01 & 9.475e-02 & 6.556e-02 & 9.995e-03 & 678.1095\\ 
+		\hline
+		0.1, 0.025 & 3.077e-01 & 1.115e-01 & 8.026e-02 & 9.997e-03 & 662.1500\\ 
+		\hline
+		0.1, 0.0125 & 1.992e-01 & 1.394e-01 & 7.121e-02 & 9.994e-03 & 637.8375\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -3.655e-15 & -8.937e-15 & -7.038e-15 & -5.638e-15 \\ 
+		\hline
+		0.1, 0.025 & -6.316e-14 & -5.351e-14 & -8.367e-14 & -6.379e-14 \\ 
+		\hline
+		0.1, 0.0125 & -9.581e-14 & -8.112e-14 & -6.806e-14 & -9.268e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 100, \ \mu = 0.1$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.05, 0.005 & 1.896e-01 & 8.329e-02 & 4.465e-02 & 9.973e-03 & 23.6600\\ 
+		\hline
+		0.05, 0.0025 & 1.558e-01 & 9.272e-02 & 4.836e-02 & 9.845e-03 & 22.1350\\ 
+		\hline
+		0.05, 0.00125 & 9.427e-02 & 7.448e-02 & 4.176e-02 & 1.000e-02 & 22.1212\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.05, 0.005 & -4.084e-14 & -4.208e-14 & -7.263e-14 & -5.286e-14 \\ 
+		\hline
+		0.05, 0.0025 & -2.569e-14 & -2.844e-14 & -2.965e-14 & -3.081e-14 \\ 
+		\hline
+		0.05, 0.00125 & -2.421e-14 & -3.201e-14 & -3.571e-14 & -3.769e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 100, \ \mu = 0.01$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.05, 0.005 & 3.542e-01 & 2.700e-01 & 1.301e-02 & 9.998e-03 & 87.7750\\ 
+		\hline
+		0.05, 0.0025 & 5.811e-01 & 3.914e-01 & 2.211e-02 & 9.983e-03 & 119.2225\\ 
+		\hline
+		0.05, 0.00125 & 2.467e-01 & 1.543e-01 & 1.124e-02 & 9.994e-03 & 134.1962\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.05, 0.005 & -8.399e-14 & -8.415e-14 & -8.428e-14 & -8.431e-14 \\ 
+		\hline
+		0.05, 0.0025 & -7.235e-14 & -7.280e-14 & -7.295e-14 & -7.302e-14 \\ 
+		\hline
+		0.05, 0.00125 & -2.779e-14 & -3.081e-14 & -3.111e-14 & -3.158e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 100, \ \mu = 0.001$
+    \begin{center}
+    	\begin{tabular}{ |c|c|c|c|c|c| } 
+    		\hline
+    		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+    		\hline
+    		0.05, 0.005 & 3.927e-01 & 1.930e-01 & 1.652e-02 & 9.997e-03 & 259.4300\\ 
+    		\hline
+    		0.05, 0.0025 & 2.394e-01 & 2.103e-01 & 1.329e-02 & 9.977e-03 & 315.3300\\ 
+    		\hline
+    		0.05, 0.00125 & 2.684e-01 & 2.111e-01 & 1.993e-02 & 9.991e-03 & 370.7850\\ 
+    		\hline
+    	\end{tabular}
+    \end{center}
+    
+    \begin{center}
+    	\begin{tabular}{ |c|c|c|c|c| } 
+    		\hline
+    		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+    		\hline
+    		0.05, 0.005 & -4.105e-14 & -4.162e-14 & -4.194e-14 & -4.210e-14 \\ 
+    		\hline
+    		0.05, 0.0025 & -3.954e-14 & -2.495e-14 & -2.584e-14  & -2.335e-14 \\ 
+    		\hline
+    		0.05, 0.00125 & -4.003e-14 & -3.489e-14 & -3.484e-14 & -4.471e-14 \\ 
+    		\hline
+    	\end{tabular}
+    \end{center}
+
+\item $\gamma = 1.4, \ \mu = 0.1$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 1.488e-01 & 7.137e-02 & 3.208e-02 & 9.989e-03 & 67.9000\\ 
+		\hline
+		0.1, 0.025 & 1.081e-01 & 7.6155e-02 & 3.125e-02 & 9.990e-03 & 67.8250\\ 
+		\hline
+		0.1, 0.0125 & 7.882e-02 & 4.349e-02 & 2.309e-02 & 9.997e-03 & 63.6250\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -4.803e-14 & -4.587e-14 & -4.813e-14 & -3.452e-14 \\ 
+		\hline
+		0.1, 0.025 & -1.349e-15 & -1.355e-15 & -1.355e-14 & -1.355e-14 \\ 
+		\hline
+		0.1, 0.0125 & -7.285e-15 & -9.570e-15 & -1.058e-14 & -1.108e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $\gamma = 1.4, \ \mu = 0.01$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 9.412e-02 & 1.772e-02 & 1.385e-02 & 9.990e-03 & 303.4000\\ 
+		\hline
+		0.1, 0.025 & 9.819e-02 & 4.873e-02 & 2.611e-02 & 9.998e-03 & 312.2250\\ 
+		\hline
+		0.1, 0.0125 & 6.862e-02 & 2.844e-02 & 1.597e-02 & 9.979e-03 & 312.1125\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -8.273e-15 & -8.275e-15 & -7.578e-15 & -7.154e-15 \\ 
+		\hline
+		0.1, 0.025 & -6.087e-14 & -7.066e-15 & -7.510e-15 & -7.759e-15 \\ 
+		\hline
+		0.1, 0.0125 & -5.577e-14 & -5.587e-14 & -5.590e-14 & -5.592e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $\gamma = 1.4, \ \mu = 0.001$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 3.841e-01 & 1.362e-01 & 2.201e-02 & 9.996e-03 & 1383.0000\\ 
+		\hline
+		0.1, 0.025 & 3.079e-01 & 1.442e-01 & 2.173e-02 & 9.995e-03 & 1577.5500\\ 
+		\hline
+		0.1, 0.0125 & 4.073e-01 & 1.329e-01 & 2.567e-02 & 9.993e-03 & 1834.5375\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -7.415e-15 & -7.959e-15 & -8.039e-15 & -8.057e-15 \\ 
+		\hline
+		0.1, 0.025 & -4.149e-14 & -4.667e-14 & -4.696e-14 & -4.716e-14 \\ 
+		\hline
+		0.1, 0.0125 & -2.670e-13 & -5.033e-13 & -5.826e-13 & -6.131e-13 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+\end{enumerate}
+
+
+
+
+
+\subsection{Вторая задача}
+\begin{enumerate}
+\item $C = 1, \ \mu = 0.1$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 4.240e-01 & 7.926e-02 & 3.560e-02 & 9.990e-03 & 129.9000\\ 
+		\hline
+		0.1, 0.025 & 4.634e-01 & 8.406e-02 & 2.039e-02 & 9.994e-03 & 139.7000\\ 
+		\hline
+		0.1, 0.0125 & 3.997e-01 & 9.378e-02 & 3.115e-02 & 9.982e-03 & 149.6000\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -3.188e-14 & -3.393e-14 & -3.432e-14 & -3.443e-14 \\ 
+		\hline
+		0.1, 0.025 & -9.427e-15 & -9.608e-15 & -9.620e-15 & -9.620e-15 \\ 
+		\hline
+		0.1, 0.0125 & -8.733e-15 & -9.626e-15 & -9.917e-15 & -1.002e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 1, \ \mu = 0.01$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 6.016e-02 & 4.545e-02 & 2.405e-02 & 9.973e-03 & 763.0500\\ 
+		\hline
+		0.1, 0.025 & 1.476e-01 & 3.562e-02 & 4.169e-02 & 9.999e-03 & 711.0250\\ 
+		\hline
+		0.1, 0.0125 & 1.348e-01 & 7.861e-02 & 3.904e-02 & 9.993e-03 & 698.7500\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -3.657e-14 & -3.758e-14 & -3.813e-14 & -3.840e-14 \\ 
+		\hline
+		0.1, 0.025 & -7.855e-15 & -7.927e-15 & -7.942e-15 & -7.947e-15 \\ 
+		\hline
+		0.1, 0.0125 & -2.590e-15 & -5.641e-15 & -6.694e-15 & -7.169e-15 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 1, \ \mu = 0.001$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 3.939e-01 & 9.490e-02 & 1.204e-02 & 9.999e-03 & 3247.7000\\ 
+		\hline
+		0.1, 0.025 & 4.482e-01 & 9.577e-02 & 1.324e-02 & 9.998e-03 & 3576.0250\\ 
+		\hline
+		0.1, 0.0125 & 4.866e-01 & 9.676e-02 & 1.489e-02 & 9.999e-03 & 3685.2375\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -4.119e-14 & -7.533e-15 & -7.759e-14 & -7.830e-14 \\ 
+		\hline
+		0.1, 0.025 & -2.018e-14 & -2.545e-14 & -3.370e-14 & -4.811e-14 \\ 
+		\hline
+		0.1, 0.0125 & -4.506e-14 & -5.645e-14 & -5.845e-14 & -5.911e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 10, \ \mu = 0.1$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 2.478e-01 & 1.978e-02 & 2.240e-02 & 9.969e-03 & 61.6500\\ 
+		\hline
+		0.1, 0.025 & 1.225e-01 & 2.116e-02 & 1.915e-02 & 9.993e-03 & 57.0000\\ 
+		\hline
+		0.1, 0.0125 & 1.304e-01 & 2.164e-02 & 2.450e-02 & 9.996e-03 & 50.9625\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -1.299e-14 & -1.565e-14 & -1.701e-14 & -1.808e-14 \\ 
+		\hline
+		0.1, 0.025 & -3.722e-14 & -3.778e-14 & -3.805e-14 & -3.823e-14 \\ 
+		\hline
+		0.1, 0.0125 & -4.720e-15 & -7.215e-15 & -8.229e-15 & -8.799e-15 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 10, \ \mu = 0.01$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 8.293e-01 & 2.116e-01 & 4.091e-02 & 9.984e-03 & 433.415\\ 
+		\hline
+		0.1, 0.025 & 6.475e-01 & 2.402e-01 & 3.342e-02 & 9.995e-03 & 421.7000\\ 
+		\hline
+		0.1, 0.0125 & 7.966e-01 & 2.398e-01 & 1.548e-02 & 9.989e-03 & 403.0375\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -9.367e-15 & -9.378e-15 & -4.381e-15 & -8.321e-15 \\ 
+		\hline
+		0.1, 0.025 & -5.998e-14 & -6.013e-14 & -6.023e-14 & -6.032e-14 \\ 
+		\hline
+		0.1, 0.0125 & -1.623e-14 & -1.799e-14 & -1.914e-14 & -2.007e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 10, \ \mu = 0.001$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 2.579e-01 & 7.760e-02 & 2.071e-02 & 9.990e-03 & 1542.4500\\ 
+		\hline
+		0.1, 0.025 & 2.405e-01 & 7.236e-02 & 2.385e-02 & 9.995e-03 & 1617.3000\\ 
+		\hline
+		0.1, 0.0125 & 2.295e-01 & 7.683e-02 & 2.307e-02 & 9.936e-03 & 1678.1500\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -1.798e-14 & -2.108e-14 & -2.256e-14 & -2.343e-13 \\ 
+		\hline
+		0.1, 0.025 & -1.693e-14 & -2.403e-14 & -2.043e-14 & -1.939e-14 \\ 
+		\hline
+		0.1, 0.0125 & -1.605e-14 & -1.466e-14 & -1.055e-14 & -1.909e-13 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 100, \ \mu = 0.1$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 6.820e-02 & 5.212e-02 & 2.006e-02 & 9.987e-03 & 30.0100\\ 
+		\hline
+		0.1, 0.025 & 1.705e-01 & 6.334e-02 & 1.986e-02 & 9.675e-03 & 10.0075\\ 
+		\hline
+		0.1, 0.0125 & 3.141e-01 & 8.016e-02 & 2.093e-02 & 9.994e-03 & 5.0025\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -7.972e-15 & -7.980e-15 & -7.985e-15 & -7.988e-15 \\ 
+		\hline
+		0.1, 0.025 & -3.443e-14 & -3.494e-14 & -3.518e-14 & -3.572e-14 \\ 
+		\hline
+		0.1, 0.0125 & -9.908e-15 & -1.712e-14 & -2.196e-14 & -2.684e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 100, \ \mu = 0.01$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 3.540e-01 & 2.302e-02 & 2.295e-02 & 9.967e-03 & 205.4300\\ 
+		\hline
+		0.1, 0.025 & 2.184e-01 & 1.949e-02 & 1.728e-02 & 9.954e-03 & 255.2450\\ 
+		\hline
+		0.1, 0.0125 & 1.928e-01 & 1.749e-02 & 1.492e-02 & 9.902e-03 & 36.0175\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -3.410e-14 & -3.484e-14 & -3.517e-14 & -3.535e-14 \\ 
+		\hline
+		0.1, 0.025 & -1.395e-14 & -2.403e-14 & -2.103e-14 & -1.249e-14 \\ 
+		\hline
+		0.1, 0.0125 & -1.234e-14 & -1.339e-14 & -1.293e-14 & -1.111e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $C = 100, \ \mu = 0.001$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 2.585e-01 & 7.255e-02 & 2.485e-02 & 9.245e-03 & 502.8200\\ 
+		\hline
+		0.1, 0.025 & 2.445e-01 & 7.802e-02 & 2.585e-02 & 9.995e-03 & 511.6075\\ 
+		\hline
+		0.1, 0.0125 & 2.485e-01 & 8.533e-02 & 1.049e-02 & 9.999e-03 & 517.5063\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -1.394e-14 & -2.294e-14 & -2.294e-14 & -2.295e-14 \\ 
+		\hline
+		0.1, 0.025 & -3.293-14 & -1.239e-14 & -1.395-14 & -8.294e-15 \\ 
+		\hline
+		0.1, 0.0125 & -1.293e-14 & -1.120e-14 & -9.938e-14 & -6.764e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $\gamma = 1.4, \ \mu = 0.1$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 1.670e-01 & 5.063e-02 & 2.587e-02 & 9.932e-03 & 128.2500\\ 
+		\hline
+		0.1, 0.025 & 2.175e-01 & 6.250e-02 & 2.862e-02 & 9.981e-03 & 134.9500\\ 
+		\hline
+		0.1, 0.0125 & 2.389e-01 & 7.778e-02 & 3.787e-02 & 9.966e-03 & 143.2875\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -3.476e-14 & -3.485e-14 & -3.488e-14 & -3.497e-14 \\ 
+		\hline
+		0.1, 0.025 & -9.636e-15 & -1.042e-14 & -1.067e-14 & -1.077e-14 \\ 
+		\hline
+		0.1, 0.0125 & -9.308e-15 & -1.011e-14 & -1.038e-14 & -1.049e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $\gamma = 1.4, \ \mu = 0.01$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 6.161e-02 & 2.348e-02 & 1.655e-02 & 9.970e-03 & 497.9000\\ 
+		\hline
+		0.1, 0.025 & 5.500e-02 & 2.242e-02 & 1.536e-02 & 9.997e-03 & 518.3250\\ 
+		\hline
+		0.1, 0.0125 & 6.304e-02 & 2.850e-02 & 1.748e-02 & 9.998e-03 & 525.2750\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -7.940e-14 & -7.962e-14 & -7.968e-14 & -7.970e-14 \\ 
+		\hline
+		0.1, 0.025 & -4.454e-14 & -4.491e-14 & -4.529e-14 & -4.550e-14 \\ 
+		\hline
+		0.1, 0.0125 & -7.528e-14 & -7.597e-14 & -7.651e-14 & -7.679e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\item $\gamma = 1.4, \ \mu = 0.001$
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $n_{st}/ 4$ & $n_{st}/ 2$ & $3n_{st}/ 4$ & $n_{st}$ & $T_{st}$ \\ 
+		\hline
+		0.1, 0.05 & 5.632e-01 & 3.318e-01 & 2.946e-02 & 9.997e-03 & 2842.5000\\ 
+		\hline
+		0.1, 0.025 & 5.659e-01 & 3.775e-01 & 2.741e-02 & 9.999e-03 & 2912.8250\\ 
+		\hline
+		0.1, 0.0125 & 4.057e-01 & 2.019e-01 & 2.823e-02 & 9.993e-03 & 2996.5750\\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{center}
+	\begin{tabular}{ |c|c|c|c|c| } 
+		\hline
+		h, \; $\tau$ & $\Delta_m (n_{st}/ 4)$ & $\Delta_m (n_{st}/ 2)$ & $\Delta_m (3n_{st}/ 4)$ & $\Delta_m (n_{st})$ \\ 
+		\hline
+		0.1, 0.05 & -7.891e-14 & -7.921e-14 & -7.934e-14 & -7.941e-14 \\ 
+		\hline
+		0.1, 0.025 & -4.030e-14 & -7.212e-14 & -7.379e-14 & -7.591e-14 \\ 
+		\hline
+		0.1, 0.0125 & -3.617e-14 & -4.172e-14 & -4.210e-14 & -4.239e-14 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+\end{enumerate}
+
+\restoregeometry
+
+
+
+\subsection{Графики}
+Иллюстрации для задачи с плотностью $p = C\rho$.
+Графики представлены так, чтобы можно было соотнести скорость стабилизации, относительно параметров $C \text{ и } \mu$.
+% это для C=1
+\begin{figure}[htbp]
+Описание для $C = 1$ и разных $\mu \in \{0.1;\; 0.01;\ 0.001\}$.
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__1__0.1____h=0.01_tau=0.002__1.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__1__0.1____h=0.1_tau=0.1__2.png}
+    \end{minipage}
+
+    \vspace{0.1cm}
+
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__1__0.01____h=0.01_tau=0.002__1.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__1__0.01____h=0.1_tau=0.1__2.png}
+    \end{minipage}
+
+    \vspace{0.1cm}
+
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__1__0.001____h=0.01_tau=0.002__1.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__1__0.001____h=0.1_tau=0.1__2.png}
+    \end{minipage}
+\end{figure}
+
+% это для C=10
+\begin{figure}[htbp]
+Описание для $C = 10$ и разных $\mu \in \{0.1;\; 0.01;\ 0.001\}$.
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__10__0.1____h=0.01_tau=0.001__1.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__10__0.1____h=0.001_tau=0.001__2.png}
+    \end{minipage}
+
+    \vspace{0.1cm}
+
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__10__0.01____h=0.01_tau=0.001__1.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__10__0.01____h=0.001_tau=0.001__2.png}
+    \end{minipage}
+
+    \vspace{0.1cm}
+
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__10__0.001____h=0.01_tau=0.001__1.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap__10__0.001____h=0.001_tau=0.0002__2.png}
+    \end{minipage}
+\end{figure}
+
+
+
+Иллюстрации для задачи с плотностью $p = \rho^\gamma$.
+% это первая задача
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap_0.1____h=0.1_tau=0.07__1.png}
+    \end{minipage}
+
+    \vspace{0.1cm}
+
+    \centering
+    \begin{minipage}{\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap_0.01____h=0.1_tau=0.07__1.png}
+    \end{minipage}
+
+    \vspace{0.1cm}
+
+    \centering
+    \begin{minipage}{\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap_0.001____h=0.1_tau=0.07__1.png}
+    \end{minipage}
+    \caption{Это иллюстрации для первой системы. Мы видим, что решение дольше стабилизируется при меньшем параметре вязкости. Это ожидаемо, так как с каждой итерацией решение сглаживается сильнее при большем коэффициенте $\mu$. При меньших $\mu$ решение стабилизируется гораздо дольше.}
+\end{figure}
+
+% это вторая задача
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap_0.1____h=0.1_tau=0.01__2.png}
+    \end{minipage}
+
+    \vspace{0.1cm}
+
+    \centering
+    \begin{minipage}{\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap_0.01____h=0.1_tau=0.01__2.png}
+    \end{minipage}
+
+    \vspace{0.1cm}
+
+    \centering
+    \begin{minipage}{\textwidth} % Ширина каждой мини-страницы 48% от ширины текст
+        \centering
+        \includegraphics[width=\textwidth]{heatmaps/good_maps/gnuplot_heatmap_0.001____h=0.1_tau=0.01__2.png}
+    \end{minipage}
+    \caption{Это иллюстрации для второй системы. Можно наблюдать похожие результаты, как и для графиков выше. Решение при $\mu = 0.1$ сглаживается за $T_{st} = 143.191$, а при $\mu = 0.001$ сглаживается за $T_{st} = 2995.819$. Графики показывают только время $T = 700$ для большей наглядности, так как на большем временном отрезке график будет нечитаемым из-за осцилляций.}
+\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
+% Приведем графики
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=1\textwidth]{gnuplot_heatmap/gnuplot_heatmap__1__0.01.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=1\textwidth]{gnuplot_heatmap/gnuplot_heatmap__1__0.01_sectask.png}
+    \end{minipage}
+    \caption{Параметры $C=1, \; \mu = 0.01$}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.96\linewidth]{planar/planar_graphs_C=1_mu=0.01.png}
+    \caption{Графики стабилизации решения}
+\end{figure}
+
+
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=0.96\textwidth]{gnuplot_heatmap/gnuplot_heatmap__10__0.01.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{gnuplot_heatmap/gnuplot_heatmap__10__0.01_sectask.png}
+    \end{minipage}
+    \caption{Параметры $C=10, \; \mu = 0.01$}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.96\linewidth]{planar/planar_graphs_C=10_mu=0.01.png}
+    \caption{Графики стабилизации решения}
+\end{figure}
+
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=0.96\textwidth]{gnuplot_heatmap/gnuplot_heatmap__100__0.01.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{gnuplot_heatmap/gnuplot_heatmap__100__0.01_sectask.png}
+    \end{minipage}
+    \caption{Параметры $C=100, \; \mu = 0.01$}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.96\linewidth]{planar/planar_graphs_C=100_mu=0.01.png}
+    \caption{Графики стабилизации решения}
+\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=0.96\textwidth]{heatmaps/good_maps/gnuplot_heatmap_0.1____h=0.1_tau=0.1__1.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{heatmaps/good_maps/gnuplot_heatmap_0.1____h=0.1_tau=0.1__2.png}
+    \end{minipage}
+    \caption{Параметры $\mu = 0.1$}
+
+    \vspace{1cm}
+
+    \centering
+    \includegraphics[width=0.96\linewidth]{planar/planar_graphs_mu=0.1.png}
+    \caption{Графики стабилизации решения}
+\end{figure}
+
+
+
+
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=0.96\textwidth]{gnuplot_heatmap/gnuplot_heatmap_0.01.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{gnuplot_heatmap/gnuplot_heatmap_0.01_sectask.png}
+    \end{minipage}
+    \caption{Параметры $\mu = 0.01$}
+
+    \vspace{1cm}
+
+    \centering
+    \includegraphics[width=0.96\linewidth]{planar/planar_graphs_mu=0.01.png}
+    \caption{Графики стабилизации решения}
+\end{figure}
+
+
+
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth} % Ширина каждой мини-страницы 48% от ширины текста
+        \centering
+        \includegraphics[width=0.96\textwidth]{gnuplot_heatmap/gnuplot_heatmap_0.001.png}
+    \end{minipage}
+    \hfill % Горизонтальное пространство между картинками
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{gnuplot_heatmap/gnuplot_heatmap_0.001_sectask.png}
+    \end{minipage}
+    \caption{Параметры $\mu = 0.001$}
+
+    \vspace{1cm}
+
+    \centering
+    \includegraphics[width=0.96\linewidth]{planar/planar_graphs_mu=0.001.png}
+    \caption{Графики стабилизации решения}
+\end{figure}
+
+\subsection{Выводы}
+При увеличении $C$ время стабилизации уменьшается, при уменьшении $\mu$ время стабилизации увеличивается. Решение иногда не стабилизируется, если $h < \tau$, ибо алгоритм расходится в этих случаях.
+\begin{enumerate}
+    \item Таблицы показывают, что время выхода на стационар зависит больше от параметра $\mu$. С уменьшением $\mu$ время стабилизации увеличивается
+    \item Период колебаний почти не зависит от $\mu$, а зависимость от $C$ явно прослеживается.
+    \item Явно выполняется закон сохранения масс, в виду того, что схема консервативная. Данный факт свидетельствует о правильности первого уравнения разностной схемы.
+\end{enumerate}
+
+\newpage
+
+\section{Стабилизация осциллирующей функции}
+Для системы (1) на области \( Q = [0; T] \times [0, 1] \) зададим две задачи со следующими начальными и граничными условиями:
+
+\[
+\begin{cases}
+\rho_0(x) = 2 + \sin(k\pi x), & x \in [0; 1], \\
+u_0(x) \equiv 0, & x \in [0; 1], \\
+u(t, 0) = u(t, 1) = 0, & t \in [0; T], \\
+f \equiv 0.
+\end{cases}
+\]
+
+\[
+\begin{cases}
+\rho_0(x) \equiv 1, & x \in [0; 1], \\
+u_0(x) = \sin(k\pi x), & x \in [0; 1], \\
+u(t, 0) = u(t, 1) = 0, & t \in [0; T], \\
+f \equiv 0.
+\end{cases}
+\]
+
+Число \( k \), задающее число колебаний начальной функции, является натуральным и для численного эксперимента выбирается из диапазона от 1 до \( M/10 \), где \( Mh = 1 \).
+
+
+\newpage
+
+\subsection{Результаты для первой системы}
+\subsubsection{Таблицы для линейного давления}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 1, \; \mu = 0.1 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  2.018000 &  1.512000 &  1.005500 \\ \hline
+$ 2 $&  8.026000 &  6.998000 &  5.944500 \\ \hline
+$ 3 $&  2.540000 &  2.032000 &  1.526000 \\ \hline
+$ 4 $&  5.008000 &  3.978000 &  2.007000 \\ \hline
+$ 5 $&  1.502000 &  1.001000 &  0.987500 \\ \hline
+$ 6 $&  3.986000 &  1.998000 &  1.012500 \\ \hline
+$ 7 $&  1.000000 &  0.987000 &  0.502000 \\ \hline
+$ 8 $&  2.982000 &  1.959000 &  0.978500 \\ \hline
+$ 9 $&  0.996000 &  0.503000 &  0.492000 \\ \hline
+$ 10 $&  1.994000 &  1.004000 &  0.951000 \\ \hline
+$ 10+M/10 $&  0.648000 &  0.316000 &  0.262000 \\ \hline
+$ 10+2 M/10 $&  0.560000 &  0.292000 &  0.252000 \\ \hline
+$ 10+3 M/10 $&  0.348000 &  0.282000 &  0.243000 \\ \hline
+$ 10+4 M/10 $&  0.328000 &  0.274000 &  0.236000 \\ \hline
+$ 10+5 M/10 $&  0.316000 &  0.268000 &  0.230000 \\ \hline
+$ 10+6 M/10 $&  0.306000 &  0.262000 &  0.224500 \\ \hline
+$ 10+7 M/10 $&  0.300000 &  0.257000 &  0.220000 \\ \hline
+$ 10+8 M/10 $&  0.296000 &  0.253000 &  0.217000 \\ \hline
+$ 10+9 M/10 $&  0.292000 &  0.250000 &  0.213500 \\ \hline
+\end{tabular} \end{table}
+
+\newgeometry{left=2cm, right=1.5cm, top=0.5cm}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 1, \; \mu = 0.01 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  25.522000 &  21.011000 &  16.974500 \\ \hline
+$ 2 $&  57.948000 &  45.845000 &  34.981500 \\ \hline
+$ 3 $&  23.068000 &  19.055000 &  15.521500 \\ \hline
+$ 4 $&  45.934000 &  35.776000 &  26.220000 \\ \hline
+$ 5 $&  20.458000 &  16.942000 &  12.916000 \\ \hline
+$ 6 $&  43.916000 &  32.798000 &  23.729500 \\ \hline
+$ 7 $&  16.938000 &  13.421000 &  9.372500 \\ \hline
+$ 8 $&  41.912000 &  30.797000 &  21.717000 \\ \hline
+$ 9 $&  14.438000 &  10.418000 &  5.915500 \\ \hline
+$ 10 $&  38.932000 &  28.769000 &  6.765000 \\ \hline
+$ 10+M/10 $&  4.000000 &  0.997000 &  0.383500 \\ \hline
+$ 10+2 M/10 $&  1.996000 &  0.774000 &  0.202000 \\ \hline
+$ 10+3 M/10 $&  1.002000 &  0.552000 &  0.140000 \\ \hline
+$ 10+4 M/10 $&  0.998000 &  0.421000 &  0.109500 \\ \hline
+$ 10+5 M/10 $&  0.994000 &  0.353000 &  0.091500 \\ \hline
+$ 10+6 M/10 $&  0.992000 &  0.311000 &  0.081000 \\ \hline
+$ 10+7 M/10 $&  0.988000 &  0.284000 &  0.074000 \\ \hline
+$ 10+8 M/10 $&  0.988000 &  0.267000 &  0.069500 \\ \hline
+$ 10+9 M/10 $&  0.986000 &  0.257000 &  0.067000 \\ \hline
+\end{tabular} \end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 1, \; \mu = 0.001 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  136.532000 &  104.616000 &  78.131500 \\ \hline
+$ 2 $&  240.998000 &  178.088000 &  130.024000 \\ \hline
+$ 3 $&  115.626000 &  89.048000 &  66.957000 \\ \hline
+$ 4 $&  181.364000 &  130.306000 &  95.683000 \\ \hline
+$ 5 $&  111.494000 &  85.921000 &  64.525500 \\ \hline
+$ 6 $&  159.380000 &  116.319000 &  84.366500 \\ \hline
+$ 7 $&  109.904000 &  84.816000 &  63.762500 \\ \hline
+$ 8 $&  153.382000 &  109.322000 &  79.322000 \\ \hline
+$ 9 $&  108.856000 &  83.805000 &  62.884000 \\ \hline
+$ 10 $&  148.384000 &  106.345000 &  76.369000 \\ \hline
+$ 10+M/10 $&  130.328000 &  15.063000 &  4.189000 \\ \hline
+$ 10+2 M/10 $&  27.104000 &  8.556000 &  1.999500 \\ \hline
+$ 10+3 M/10 $&  20.604000 &  5.553000 &  1.000500 \\ \hline
+$ 10+4 M/10 $&  15.620000 &  4.002000 &  0.997500 \\ \hline
+$ 10+5 M/10 $&  13.586000 &  3.001000 &  0.890000 \\ \hline
+$ 10+6 M/10 $&  11.606000 &  2.998000 &  0.777500 \\ \hline
+$ 10+7 M/10 $&  10.602000 &  2.002000 &  0.707500 \\ \hline
+$ 10+8 M/10 $&  10.574000 &  2.001000 &  0.654500 \\ \hline
+$ 10+9 M/10 $&  10.008000 &  2.000000 &  0.638000 \\ \hline
+\end{tabular} \end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 10, \; \mu = 0.1 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  3.330000 &  3.010000 &  2.376000 \\ \hline
+$ 2 $&  10.132000 &  8.546000 &  7.272500 \\ \hline
+$ 3 $&  3.344000 &  2.865000 &  2.544500 \\ \hline
+$ 4 $&  8.230000 &  6.958000 &  5.684500 \\ \hline
+$ 5 $&  2.372000 &  2.052000 &  1.575500 \\ \hline
+$ 6 $&  7.278000 &  5.694000 &  4.422500 \\ \hline
+$ 7 $&  2.054000 &  1.576000 &  0.940000 \\ \hline
+$ 8 $&  6.330000 &  5.058000 &  3.474500 \\ \hline
+$ 9 $&  1.738000 &  1.102000 &  0.467500 \\ \hline
+$ 10 $&  5.696000 &  4.111000 &  2.839500 \\ \hline
+$ 10+M/10 $&  0.636000 &  0.313000 &  0.127500 \\ \hline
+$ 10+2 M/10 $&  0.320000 &  0.304000 &  0.067000 \\ \hline
+$ 10+3 M/10 $&  0.318000 &  0.186000 &  0.049000 \\ \hline
+$ 10+4 M/10 $&  0.316000 &  0.180000 &  0.042000 \\ \hline
+$ 10+5 M/10 $&  0.314000 &  0.116000 &  0.039500 \\ \hline
+$ 10+6 M/10 $&  0.312000 &  0.103000 &  0.038000 \\ \hline
+$ 10+7 M/10 $&  0.312000 &  0.094000 &  0.036500 \\ \hline
+$ 10+8 M/10 $&  0.312000 &  0.089000 &  0.036000 \\ \hline
+$ 10+9 M/10 $&  0.310000 &  0.086000 &  0.035500 \\ \hline
+\end{tabular} \end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 10, \; \mu = 0.01 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $& $\infty$ &  0.414000 &  18.503000 \\ \hline
+$ 2 $& $\infty$ &  46.183000 &  35.689000 \\ \hline
+$ 3 $& $\infty$ &  50.525000 &  15.988000 \\ \hline
+$ 4 $& $\infty$ &  35.982000 &  26.635000 \\ \hline
+$ 5 $& $\infty$ &  18.811000 &  15.473000 \\ \hline
+$ 6 $& $\infty$ &  33.458000 &  24.426000 \\ \hline
+$ 7 $& $\infty$ &  18.316000 &  14.980500 \\ \hline
+$ 8 $& $\infty$ &  32.514000 &  23.639500 \\ \hline
+$ 9 $& $\infty$ &  17.517000 &  14.182500 \\ \hline
+$ 10 $& $\infty$ &  32.194000 &  23.318500 \\ \hline
+$ 10+M/10 $& $\infty$ &  4.746000 &  0.948500 \\ \hline
+$ 10+2 M/10 $& $\infty$ &  1.583000 &  0.316500 \\ \hline
+$ 10+3 M/10 $& $\infty$ &  0.950000 &  0.315500 \\ \hline
+$ 10+4 M/10 $& $\infty$ &  0.634000 &  0.314000 \\ \hline
+$ 10+5 M/10 $& $\infty$ &  0.633000 &  0.280500 \\ \hline
+$ 10+6 M/10 $& $\infty$ &  0.632000 &  0.246000 \\ \hline
+$ 10+7 M/10 $& $\infty$ &  0.317000 &  0.224000 \\ \hline
+$ 10+8 M/10 $& $\infty$ &  0.317000 &  0.210500 \\ \hline
+$ 10+9 M/10 $& $\infty$ &  0.317000 &  0.203000 \\ \hline
+\end{tabular} \end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 100, \; \mu = 0.1 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $& $\infty$ &  $\infty$ &  3.204000 \\ \hline
+$ 2 $& $\infty$ &  8.120000 &  7.507000 \\ \hline
+$ 3 $& $\infty$ &  $\infty$ &  2.810000 \\ \hline
+$ 4 $& $\infty$ &  7.607000 &  6.203000 \\ \hline
+$ 5 $& $\infty$ &  $\infty$ &  2.597500 \\ \hline
+$ 6 $& $\infty$ &  7.304000 &  6.001000 \\ \hline
+$ 7 $& $\infty$ &  $\infty$ &  2.245000 \\ \hline
+$ 8 $& $\infty$ &  7.103000 &  \\ \hline
+$ 9 $& $\infty$ &  $\infty$ &  2.044500 \\ \hline
+$ 10 $& $\infty$ & $\infty$ &  \\ \hline
+$ 10+M/10 $& $\infty$ &  0.701000 &  0.101000 \\ \hline
+$ 10+2 M/10 $& $\infty$ &  0.301000 &  0.100500 \\ \hline
+$ 10+3 M/10 $& $\infty$ &  0.300000 &  0.099500 \\ \hline
+$ 10+4 M/10 $& $\infty$ &  0.299000 &  0.099000 \\ \hline
+$ 10+5 M/10 $& $\infty$ &  0.298000 &  0.098500 \\ \hline
+$ 10+6 M/10 $& $\infty$ &  0.298000 &  0.080000 \\ \hline
+$ 10+7 M/10 $& $\infty$ &  0.298000 &  0.073000 \\ \hline
+$ 10+8 M/10 $& $\infty$ &  0.299000 &  0.068500 \\ \hline
+$ 10+9 M/10 $& $\infty$ &  0.360000 &  0.059000 \\ \hline
+\end{tabular} \end{table}
+
+\restoregeometry
+
+Решение при 10 и 0.001 не работает нихрена при 100 и 0.01 и 0.001.
+
+\subsubsection{Таблицы для нелинейного давления}
+Выбраны $\epsilon = 0.0001$
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ \mu = 0.1 $} \\ \hline   & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\ k & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+1 & 2.796000 & 2.098000 & 1.741500 \\ \hline
+2 & 8.842000 & 8.076000 & 6.580000 \\ \hline
+3 & 2.918000 & 2.195000 & 1.828500 \\ \hline
+4 & 6.620000 & 5.136000 & 3.647000 \\ \hline
+5 & 1.090000 & 1.081000 & 1.072000 \\ \hline
+6 & 5.146000 & 3.661000 & 2.180000 \\ \hline
+7 & 0.728000 & 0.722000 & 0.714000 \\ \hline
+8 & 3.680000 & 2.205000 & 1.451000 \\ \hline
+9 & 0.726000 & 0.371000 & 0.363000 \\ \hline
+10 & 2.942000 & 1.477000 & 0.743000 \\ \hline
+10+M/10& 0.710000 & 0.235000 & 0.166000 \\ \hline
+10+2M/10& 0.464000 & 0.189000 & 0.157000 \\ \hline
+10+3M/10& 0.436000 & 0.178000 & 0.151500 \\ \hline
+10+4M/10& 0.250000 & 0.171000 & 0.146500 \\ \hline
+10+5M/10& 0.226000 & 0.166000 & 0.142500 \\ \hline
+10+6M/10& 0.214000 & 0.163000 & 0.140500 \\ \hline
+10+7M/10& 0.204000 & 0.159000 & 0.138000 \\ \hline
+10+8M/10& 0.198000 & 0.157000 & 0.136500 \\ \hline
+10+9M/10& 0.198000 & 0.155000 & 0.133500 \\ \hline
+\end{tabular}
+\end{table}
+
+\newgeometry{left=2cm, right=1.5cm, top=0.5cm}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ \mu = 0.01 $} \\ \hline   & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\ k & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+1 & 25.434000 & 20.897000 & 17.026500 \\ \hline
+2 & 54.422000 & 43.274000 & 32.938500 \\ \hline
+3 & 22.048000 & 18.425000 & 15.134000 \\ \hline
+4 & 43.340000 & 32.965000 & 24.436000 \\ \hline
+5 & 21.042000 & 17.395000 & 14.087500 \\ \hline
+6 & 41.124000 & 30.751000 & 22.582000 \\ \hline
+7 & 19.264000 & 15.605000 & 12.278500 \\ \hline
+8 & 40.368000 & 29.997000 & 21.499500 \\ \hline
+9 & 17.108000 & 13.804000 & 10.110000 \\ \hline
+10 & 39.626000 & 29.261000 & 20.758000 \\ \hline
+10+M/10& 7.360000 & 1.471000 & 0.519000 \\ \hline
+10+2M/10& 2.944000 & 0.733000 & 0.270500 \\ \hline
+10+3M/10& 1.474000 & 0.727000 & 0.187000 \\ \hline
+10+4M/10& 1.470000 & 0.570000 & 0.146500 \\ \hline
+10+5M/10& 0.740000 & 0.477000 & 0.122500 \\ \hline
+10+6M/10& 0.738000 & 0.406000 & 0.107500 \\ \hline
+10+7M/10& 0.738000 & 0.399000 & 0.097500 \\ \hline
+10+8M/10& 0.736000 & 0.397000 & 0.092000 \\ \hline
+10+9M/10& 0.736000 & 0.396000 & 0.089000 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ \mu = 0.001 $} \\ \hline   & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\ k & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+1 & $\infty$ & 0.264000 & 73.055500 \\ \hline
+2 & $\infty$ & 0.425000 & 119.776000 \\ \hline
+3 & $\infty$ & 0.331000 & 62.012000 \\ \hline
+4 & $\infty$ & 164.866000 & 88.488000 \\ \hline
+5 & $\infty$ & 0.197000 & 59.840000 \\ \hline
+6 & $\infty$ & 0.074000 & 77.745000 \\ \hline
+7 & 0.048000 & 172.812000 & 58.905000 \\ \hline
+8 & 0.046000 & 98.198000 & 73.075500 \\ \hline
+9 & 0.048000 & 77.939000 & 58.312000 \\ \hline
+10 & 0.046000 & 159.900000 & 70.171500 \\ \hline
+10+M/10 & 0.628000 & 20.688000 & 5.564500 \\ \hline
+10+2M/10 & 0.736000 & 10.355000 & 3.016500 \\ \hline
+10+3M/10 & 0.798000 & 7.768000 & 1.866500 \\ \hline
+10+4M/10 & 0.434000 & 5.563000 & 1.470500 \\ \hline
+10+5M/10 & 0.382000 & 4.818000 & 1.242500 \\ \hline
+10+6M/10& 0.546000 & 4.086000 & 0.736500 \\ \hline
+10+7M/10& 0.824000 & 3.681000 & 0.735500 \\ \hline
+10+8M/10& 0.548000 & 3.680000 & 0.735500 \\ \hline
+10+9M/10& 0.624000 & 3.343000 & 0.735000 \\ \hline
+\end{tabular}
+\end{table}
+
+\restoregeometry
+
+\subsection{Результаты для второй системы}
+\subsubsection{Таблицы для линейного давления}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 1, \; \mu = 0.1 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  4.416000 &  3.405000 &  3.297000 \\ \hline
+$ 2 $&  1.240000 &  1.219000 &  1.187000 \\ \hline
+$ 3 $&  0.502000 &  0.492000 &  0.483000 \\ \hline
+$ 4 $&  0.412000 &  0.402000 &  0.388500 \\ \hline
+$ 5 $&  0.382000 &  0.366000 &  0.343000 \\ \hline
+$ 6 $&  0.400000 &  0.363000 &  0.324000 \\ \hline
+$ 7 $&  0.416000 &  0.365000 &  0.313500 \\ \hline
+$ 8 $&  0.418000 &  0.361000 &  0.303500 \\ \hline
+$ 9 $&  0.414000 &  0.354000 &  0.292500 \\ \hline
+$ 10 $&  0.408000 &  0.346000 &  0.282500 \\ \hline
+$ 10+M/10 $&  0.242000 &  0.112000 &  0.005500 \\ \hline
+$ 10+2 M/10 $&  0.184000 &  0.048000 &  0.005500 \\ \hline
+$ 10+3 M/10 $&  0.146000 &  0.011000 &  0.005500 \\ \hline
+$ 10+4 M/10 $&  0.124000 &  0.011000 &  0.005500 \\ \hline
+$ 10+5 M/10 $&  0.106000 &  0.011000 &  0.005500 \\ \hline
+$ 10+6 M/10 $&  0.094000 &  0.011000 &  0.005500 \\ \hline
+$ 10+7 M/10 $&  0.084000 &  0.011000 &  0.005500 \\ \hline
+$ 10+8 M/10 $&  0.078000 &  0.011000 &  0.005500 \\ \hline
+$ 10+9 M/10 $&  0.074000 &  0.011000 &  0.005500 \\ \hline
+\end{tabular} \end{table}
+
+\newgeometry{left=2cm, right=1.5cm, top=0.5cm}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 1, \; \mu = 0.01 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  28.314000 &  22.347000 &  17.174000 \\ \hline
+$ 2 $&  10.198000 &  8.672000 &  7.119500 \\ \hline
+$ 3 $&  5.472000 &  4.791000 &  4.107000 \\ \hline
+$ 4 $&  3.360000 &  2.852000 &  2.590500 \\ \hline
+$ 5 $&  2.292000 &  2.083000 &  1.874500 \\ \hline
+$ 6 $&  1.746000 &  1.571000 &  1.398000 \\ \hline
+$ 7 $&  1.356000 &  1.206000 &  1.058500 \\ \hline
+$ 8 $&  1.064000 &  0.933000 &  0.803500 \\ \hline
+$ 9 $&  0.836000 &  0.720000 &  0.605500 \\ \hline
+$ 10 $&  0.654000 &  0.649000 &  0.545000 \\ \hline
+$ 10+M/10 $&  0.066000 &  0.054000 &  0.043500 \\ \hline
+$ 10+2 M/10 $&  0.060000 &  0.050000 &  0.037500 \\ \hline
+$ 10+3 M/10 $&  0.058000 &  0.047000 &  0.033500 \\ \hline
+$ 10+4 M/10 $&  0.056000 &  0.045000 &  0.031000 \\ \hline
+$ 10+5 M/10 $&  0.056000 &  0.043000 &  0.029500 \\ \hline
+$ 10+6 M/10 $&  0.054000 &  0.042000 &  0.028000 \\ \hline
+$ 10+7 M/10 $&  0.054000 &  0.040000 &  0.026500 \\ \hline
+$ 10+8 M/10 $&  0.052000 &  0.040000 &  0.026500 \\ \hline
+$ 10+9 M/10 $&  0.052000 &  0.040000 &  0.026000 \\ \hline
+\end{tabular} \end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 1, \; \mu = 0.001 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  120.336000 &  88.700000 &  64.593500 \\ \hline
+$ 2 $&  52.240000 &  40.162000 &  30.111000 \\ \hline
+$ 3 $&  30.518000 &  24.442000 &  18.741000 \\ \hline
+$ 4 $&  20.398000 &  16.605000 &  13.082000 \\ \hline
+$ 5 $&  14.722000 &  12.291000 &  9.857500 \\ \hline
+$ 6 $&  11.104000 &  9.415000 &  7.721500 \\ \hline
+$ 7 $&  8.948000 &  7.500000 &  6.198000 \\ \hline
+$ 8 $&  7.080000 &  6.064000 &  5.175500 \\ \hline
+$ 9 $&  5.960000 &  5.058000 &  4.379500 \\ \hline
+$ 10 $&  5.064000 &  4.352000 &  3.742500 \\ \hline
+$ 10+M/10 $&  0.302000 &  0.101000 &  0.029000 \\ \hline
+$ 10+2 M/10 $&  0.134000 &  0.042000 &  0.012000 \\ \hline
+$ 10+3 M/10 $&  0.096000 &  0.024000 &  0.010000 \\ \hline
+$ 10+4 M/10 $&  0.070000 &  0.029000 &  0.007500 \\ \hline
+$ 10+5 M/10 $&  0.096000 &  0.019000 &  0.007000 \\ \hline
+$ 10+6 M/10 $&  0.112000 &  0.030000 &  0.009000 \\ \hline
+$ 10+7 M/10 $&  0.086000 &  0.021000 &  0.007500 \\ \hline
+$ 10+8 M/10 $&  0.072000 &  0.030000 &  0.008000 \\ \hline
+$ 10+9 M/10 $&  0.126000 &  0.029000 &  0.009000 \\ \hline
+\end{tabular} \end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C=10, \; \mu = 0.1 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  4.266000 &  3.625000 &  2.981500 \\ \hline
+$ 2 $&  1.190000 &  1.027000 &  0.864500 \\ \hline
+$ 3 $&  0.586000 &  0.476000 &  0.367500 \\ \hline
+$ 4 $&  0.362000 &  0.279000 &  0.275500 \\ \hline
+$ 5 $&  0.228000 &  0.160000 &  0.158000 \\ \hline
+$ 6 $&  0.194000 &  0.135000 &  0.132500 \\ \hline
+$ 7 $&  0.120000 &  0.117000 &  0.114500 \\ \hline
+$ 8 $&  0.108000 &  0.104000 &  0.060000 \\ \hline
+$ 9 $&  0.098000 &  0.094000 &  0.054000 \\ \hline
+$ 10 $&  0.090000 &  0.051000 &  0.049500 \\ \hline
+$ 10+M/10 $&  0.048000 &  0.035000 &  0.021500 \\ \hline
+$ 10+2 M/10 $&  0.044000 &  0.029000 &  0.015000 \\ \hline
+$ 10+3 M/10 $&  0.040000 &  0.026000 &  0.011500 \\ \hline
+$ 10+4 M/10 $&  0.038000 &  0.024000 &  0.009000 \\ \hline
+$ 10+5 M/10 $&  0.036000 &  0.022000 &  0.007000 \\ \hline
+$ 10+6 M/10 $&  0.036000 &  0.021000 &  0.006000 \\ \hline
+$ 10+7 M/10 $&  0.034000 &  0.020000 &  0.005500 \\ \hline
+$ 10+8 M/10 $&  0.034000 &  0.019000 &  0.005500 \\ \hline
+$ 10+9 M/10 $&  0.034000 &  0.019000 &  0.005500 \\ \hline
+\end{tabular} \end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 10, \; \mu = 0.01 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  28.316000 &  22.565000 &  17.208500 \\ \hline
+$ 2 $&  10.210000 &  8.616000 &  7.019500 \\ \hline
+$ 3 $&  5.332000 &  4.587000 &  3.844500 \\ \hline
+$ 4 $&  3.368000 &  2.888000 &  2.489000 \\ \hline
+$ 5 $&  2.316000 &  1.995000 &  1.739000 \\ \hline
+$ 6 $&  1.720000 &  1.452000 &  1.291500 \\ \hline
+$ 7 $&  1.294000 &  1.155000 &  0.972000 \\ \hline
+$ 8 $&  1.054000 &  0.892000 &  0.771500 \\ \hline
+$ 9 $&  0.832000 &  0.723000 &  0.651000 \\ \hline
+$ 10 $&  0.686000 &  0.588000 &  0.523000 \\ \hline
+$ 10+M/10 $&  0.054000 &  0.018000 &  0.007500 \\ \hline
+$ 10+2 M/10 $&  0.044000 &  0.011000 &  0.005500 \\ \hline
+$ 10+3 M/10 $&  0.046000 &  0.011000 &  0.005500 \\ \hline
+$ 10+4 M/10 $&  0.042000 &  0.011000 &  0.005500 \\ \hline
+$ 10+5 M/10 $&  0.038000 &  0.011000 &  0.005500 \\ \hline
+$ 10+6 M/10 $&  0.046000 &  0.011000 &  0.005500 \\ \hline
+$ 10+7 M/10 $&  0.056000 &  0.011000 &  0.005500 \\ \hline
+$ 10+8 M/10 $&  0.062000 &  0.011000 &  0.005500 \\ \hline
+$ 10+9 M/10 $&  0.066000 &  0.011000 &  0.005500 \\ \hline
+\end{tabular} \end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ C = 100, \; \mu = 0.1 $} \\ \hline   k & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\  & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  4.354000 &  3.551000 &  2.848000 \\ \hline
+$ 2 $&  1.180000 &  0.977000 &  0.825500 \\ \hline
+$ 3 $&  0.588000 &  0.486000 &  0.384000 \\ \hline
+$ 4 $&  0.368000 &  0.290000 &  0.213500 \\ \hline
+$ 5 $&  0.276000 &  0.213000 &  0.131000 \\ \hline
+$ 6 $&  0.214000 &  0.161000 &  0.109500 \\ \hline
+$ 7 $&  0.112000 &  0.110000 &  0.094000 \\ \hline
+$ 8 $&  0.150000 &  0.084000 &  0.070000 \\ \hline
+$ 9 $&  0.112000 &  0.075000 &  0.062500 \\ \hline
+$ 10 $&  0.102000 &  0.068000 &  0.056500 \\ \hline
+$ 10+M/10 $&  0.122000 &  0.011000 &  0.005500 \\ \hline
+$ 10+2 M/10 $&  0.212000 &  0.011000 &  0.005500 \\ \hline
+$ 10+3 M/10 $&  0.236000 &  0.011000 &  0.005500 \\ \hline
+$ 10+4 M/10 $&  0.240000 &  0.011000 &  0.005500 \\ \hline
+$ 10+5 M/10 $&  0.280000 &  0.011000 &  0.005500 \\ \hline
+$ 10+6 M/10 $&  0.342000 &  0.011000 &  0.005500 \\ \hline
+$ 10+7 M/10 $&  0.400000 &  0.011000 &  0.005500 \\ \hline
+$ 10+8 M/10 $&  0.440000 &  0.011000 &  0.005500 \\ \hline
+$ 10+9 M/10 $&  0.458000 &  0.011000 &  0.005500 \\ \hline
+\end{tabular} \end{table}
+
+\restoregeometry
+
+Таблицы для параметров $ (C=100, \; \mu = 0.01)$ и $(C=100, \; \mu=0.001)$, и при $(C=10, \mu = 0.001)$ не приводятся из-за расходимости большинства значений ячеек таблицы.
+
+\subsubsection{Таблицы для нелинейного давления}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ \mu = 0.1 $} \\ \hline   & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\ k & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  4.570000 &  3.704000 &  2.832500 \\ \hline
+$ 2 $&  1.468000 &  1.034000 &  1.010500 \\ \hline
+$ 3 $&  0.714000 &  0.413000 &  0.404000 \\ \hline
+$ 4 $&  0.330000 &  0.324000 &  0.317000 \\ \hline
+$ 5 $&  0.464000 &  0.282000 &  0.272000 \\ \hline
+$ 6 $&  0.278000 &  0.266000 &  0.249500 \\ \hline
+$ 7 $&  0.292000 &  0.268000 &  0.240500 \\ \hline
+$ 8 $&  0.306000 &  0.272000 &  0.236000 \\ \hline
+$ 9 $&  0.310000 &  0.271000 &  0.231000 \\ \hline
+$ 10 $&  0.310000 &  0.268000 &  0.225000 \\ \hline
+$ 10+M/10 $&  0.198000 &  0.104000 &  0.008500 \\ \hline
+$ 10+2M/10 $&  0.156000 &  0.059000 &  0.005500 \\ \hline
+$ 10+3M/10 $&  0.130000 &  0.033000 &  0.005500 \\ \hline
+$ 10+4M/10 $&  0.114000 &  0.015000 &  0.005500 \\ \hline
+$ 10+5M/10 $&  0.100000 &  0.011000 &  0.005500 \\ \hline
+$ 10+6M/10 $&  0.092000 &  0.011000 &  0.005500 \\ \hline
+$ 10+7M/10 $&  0.084000 &  0.011000 &  0.005500 \\ \hline
+$ 10+8M/10 $&  0.082000 &  0.011000 &  0.005500 \\ \hline
+$ 10+9M/10 $&  0.078000 &  0.011000 &  0.005500 \\ \hline
+\end{tabular}
+\end{table}
+
+
+\newgeometry{left=2cm, right=1.5cm, top=0.5cm}
+
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ \mu = 0.01 $} \\ \hline   & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\ k & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  27.270000 &  21.288000 &  16.165000 \\ \hline
+$ 2 $&  9.894000 &  8.182000 &  6.839500 \\ \hline
+$ 3 $&  5.194000 &  4.616000 &  3.761000 \\ \hline
+$ 4 $&  3.266000 &  2.834000 &  2.405000 \\ \hline
+$ 5 $&  2.276000 &  1.932000 &  1.756000 \\ \hline
+$ 6 $&  1.618000 &  1.471000 &  1.324000 \\ \hline
+$ 7 $&  1.268000 &  1.141000 &  1.016000 \\ \hline
+$ 8 $&  1.006000 &  0.894000 &  0.785000 \\ \hline
+$ 9 $&  0.896000 &  0.795000 &  0.697500 \\ \hline
+$ 10 $&  0.724000 &  0.633000 &  0.545000 \\ \hline
+$ 10+M/10 $&  0.052000 &  0.040000 &  0.033500 \\ \hline
+$ 10+2M/10 $&  0.042000 &  0.038000 &  0.029000 \\ \hline
+$ 10+3M/10 $&  0.042000 &  0.036000 &  0.026500 \\ \hline
+$ 10+4M/10 $&  0.042000 &  0.035000 &  0.024500 \\ \hline
+$ 10+5M/10 $&  0.042000 &  0.033000 &  0.023500 \\ \hline
+$ 10+6M/10 $&  0.040000 &  0.032000 &  0.022500 \\ \hline
+$ 10+7M/10 $&  0.040000 &  0.031000 &  0.021500 \\ \hline
+$ 10+8M/10 $&  0.040000 &  0.031000 &  0.021500 \\ \hline
+$ 10+9M/10 $&  0.040000 &  0.031000 &  0.021000 \\ \hline
+\end{tabular}
+\end{table}
+
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {3}{|c}|} \hline \multicolumn{4}{|c|}{$ \mu = 0.001 $} \\ \hline   & $\tau=0.002$ & $\tau=0.001$ & $\tau=0.0005$ \\ k & $ h=0.002$ & $ h=0.001$ & $ h=0.0005$ \\  \hline
+$ 1 $&  111.186000 &  82.137000 &  59.540000 \\ \hline
+$ 2 $&  49.210000 &  37.365000 &  27.958000 \\ \hline
+$ 3 $&  29.178000 &  22.921000 &  17.525000 \\ \hline
+$ 4 $&  19.360000 &  15.726000 &  12.313500 \\ \hline
+$ 5 $&  13.972000 &  11.576000 &  9.343500 \\ \hline
+$ 6 $&  11.082000 &  8.948000 &  7.240000 \\ \hline
+$ 7 $&  8.656000 &  7.188000 &  5.849500 \\ \hline
+$ 8 $&  6.834000 &  5.868000 &  4.904500 \\ \hline
+$ 9 $&  6.638000 &  4.936000 &  4.173000 \\ \hline
+$ 10 $&  4.792000 &  4.189000 &  3.504000 \\ \hline
+$ 10+M/10 $&  0.298000 &  0.077000 &  0.024500 \\ \hline
+$ 10+2M/10 $&  0.138000 &  0.040000 &  0.012500 \\ \hline
+$ 10+3M/10 $&  0.102000 &  0.030000 &  0.010000 \\ \hline
+$ 10+4M/10 $&  0.078000 &  0.025000 &  0.007500 \\ \hline
+$ 10+5M/10 $&  0.102000 &  0.033000 &  0.005500 \\ \hline
+$ 10+6M/10 $&  0.170000 &  0.036000 &  0.007500 \\ \hline
+$ 10+7M/10 $&  0.106000 &  0.052000 &  0.010500 \\ \hline
+$ 10+8M/10 $&  0.148000 &  0.026000 &  0.007500 \\ \hline
+$ 10+9M/10 $&  0.096000 &  0.029000 &  0.007500 \\ \hline
+\end{tabular}
+\end{table}
+
+\restoregeometry
+
+\subsection{Выводы}
+На вложенных сетках решение стабилизируется несколько быстрее. При более частых осцилляциях решение быстрее сглаживается, так как масса быстрее и равномернее перераспределяется между узлами.
+\begin{enumerate}
+\item \textbf{Зависимость от} $k$: при увеличении параметра $k$ время стабилизации уменьшается. Также можно наблюдать эффекты связанные с нечетностью функции при малых $k$ для первой системы. Можно наблюдать, что время стабилизации увеличивается при $k = i$, относительно $k=i-1$, и снова уменьшается при $k=i+1$. Прослеживается закономерность, как будто это две разные строго убывающие последовательности, которые объеденены методом <<гребенки>>. Можно сделать вывод о том, что сама задача можем дать существенно отличающиеся результаты из-за нечетности осциллирующей функции. Во второй системе данная закономерность не выражена, или же выражена слабо.
+\item \textbf{Зависимость от} $\mu$ \textbf{и} $C$: при уменьшении параметра $\mu$ решение стабилизируется дольше. Однако, при больших значениях $k$ с уменьшением $\mu$ время стабилизации может уменьшаться. Как и ранее несжимаемость газа ускоряет стабилизацию, таким образом при большом $C$ и небольшом
+
+Слишком маленькая вязкость и несжимаемость, например при $C=100$ и $\mu=0.001$, мешают сходимости схемы.
+\end{enumerate}
+
+
+
+\newpage
+
+\section{Задача <<протекания>>}
+Рассмотрим задачу <<протекания>> на отрезке $[0, \, X]$ учитывая, что $X = 10$, заданную соотношениями ниже.
+
+\begin{align*}
+\rho_0(x) &= 1, & u_0(x) &= 0, & & & x &\in [0; X], \\
+u(t, 0) &= \widetilde{v}, & \rho(t, 0) &= \widetilde{\rho}, & \left. \frac{\partial u}{\partial x} \right|_{x=X} = 0, & & t &\in [0; T].
+\end{align*}
+
+Функция правой части $f \equiv 0$.
+
+Основная часть разностной схемы, реализованной ранее, остается прежней, но отличается первыми и последними уравнениями в системе. Для поиска скорости $\widehat V$ качестве последнего уравнения системы вместо уравнения $V[M] = 0$, добавляется уравнение
+$$ V\left[M-1\right] = V[M]. $$
+
+Также вместо первых уравнений системы добавляются уравнения вида $$ H[0] = \widetilde{\rho}, \qquad V[0] = \widetilde{v}, \text{ для всех временных слоев.} $$
+
+Далее рассматривается данная задача и определяется зависимость времени стабилизации решения от различных параметров задачи (помимо основных параметров, на время стабилизации также влияют параметры $\widetilde \rho$ и $\widetilde{v}$).
+
+Критерием выхода на стационар, как и ранее, считается условие
+\[ \left\|(H^{n_{st}}, V^{n_{st}}) - (\widetilde{H}, \widetilde{V})\right\|_{C_h} < \varepsilon. \]
+
+\subsection{Для линейного давления}
+Для таблиц возьмем значения: $h = 0.001, \; \tau = 0.0001 \; (\text{то есть }M=1000, \; N=10000)$. Во всех таблицах ниже используется $\varepsilon = 0.001$.
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ C=1, \; \mu = 0.01$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 20.6172 & 26.7662 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+2 & 21.9892 & 31.3898 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+3 & 23.1994 & 34.0640 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+4 & 24.1906 & 36.1162 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+5 & 25.0222 & 37.8946 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+6 & 25.7612 & 39.5240 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+7 & 26.4334 & 41.0690 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ C=1, \; \mu = 0.001$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 20.4584 & 30.6206 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+2 & 22.3038 & 34.3964 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+3 & 23.6612 & 36.6342 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+4 & 24.7254 & 38.4734 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+5 & 25.5760 & 40.0728 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+6 & 26.3114 & 41.4814 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+7 & 26.9772 & 42.9486 & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ & $ \infty $ \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ C=10, \; \mu = 0.1$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 0.8262 & 6.4660 & 7.5682 & 13.0070 & 20.1968 & 21.4356 & 28.8494 \\ \hline
+2 & 6.5334 & 6.6684 & 6.9140 & 7.3812 & 8.6404 & 9.8762 & 18.5260 \\ \hline
+3 & 6.6992 & 6.9602 & 7.7116 & 8.5960 & 9.6124 & 11.1124 & 14.1650 \\ \hline
+4 & 6.9406 & 7.7092 & 8.5266 & 9.3482 & 10.5312 & 13.1156 & 15.0876 \\ \hline
+5 & 7.4598 & 8.3454 & 9.0822 & 10.0130 & 12.2494 & 13.6512 & 15.8364 \\ \hline
+6 & 8.0140 & 8.8278 & 9.6004 & 10.6508 & 12.6060 & 14.1036 & 16.4634 \\ \hline
+7 & 8.4896 & 9.2504 & 10.0946 & 11.8980 & 12.9164 & 14.4980 & 17.0024 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ C=10, \; \mu = 0.01$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 3.0098 & 6.7202 & 6.9050 & 7.0472 & 7.6848 & 9.2140 & 11.7088 \\ \hline
+2 & 7.0034 & 7.1384 & 7.4750 & 8.0856 & 9.2832 & 11.1834 & 14.3224 \\ \hline
+3 & 7.4196 & 7.7328 & 8.1948 & 8.9956 & 10.3844 & 12.5884 & 16.4662 \\ \hline
+4 & 7.9002 & 8.2860 & 8.8384 & 9.7560 & 11.3384 & 14.1544 & 17.1400 \\ \hline
+5 & 8.3550 & 8.7942 & 9.4076 & 10.4550 & 12.7384 & 14.5994 & 17.6674 \\ \hline
+6 & 8.7800 & 9.2572 & 9.9476 & 11.8678 & 13.0704 & 14.9722 & 18.4050 \\ \hline
+7 & 9.1756 & 9.6948 & 10.4630 & 12.1326 & 13.3590 & 15.2974 & 18.9934 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ C=10, \; \mu = 0.001$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 0.0246 & 3.1014 & 6.8696 & 7.1088 & 7.9068 & 9.7354 & 13.0350 \\ \hline
+2 & 7.1316 & 7.2572 & 7.5868 & 8.2234 & 9.5146 & 11.6520 & 16.0160 \\ \hline
+3 & 7.5864 & 7.8744 & 8.3214 & 9.1400 & 10.5908 & 13.7930 & 16.8368 \\ \hline
+4 & 8.0688 & 8.4274 & 8.9664 & 9.9012 & 11.5472 & 14.3166 & 17.4282 \\ \hline
+5 & 8.5210 & 8.9300 & 9.5364 & 10.6004 & 12.8284 & 14.7332 & 17.9036 \\ \hline
+6 & 8.9442 & 9.3996 & 10.0702 & 11.9290 & 13.1478 & 15.0862 & 18.6544 \\ \hline
+7 & 9.3458 & 9.8440 & 10.5816 & 12.1874 & 13.4270 & 15.3964 & 19.1888 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ C=100, \; \mu = 0.1$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 0.9648 & 0.9540 & 2.0298 & 2.0348 & 2.2124 & 2.5288 & 2.9012 \\ \hline
+2 & 2.8416 & 3.0430 & 3.0646 & 3.0848 & 3.1060 & 3.1284 & 3.1648 \\ \hline
+3 & 3.1104 & 3.1592 & 4.0020 & 4.2854 & 4.3392 & 5.1316 & 6.8462 \\ \hline
+4 & 3.9958 & 4.2748 & 4.3246 & 4.3798 & 5.1636 & 6.9584 & 7.3482 \\ \hline
+5 & 4.2940 & 4.3430 & 4.3968 & 4.4564 & 6.8464 & 7.3558 & 8.0284 \\ \hline
+6 & 4.3498 & 4.4008 & 4.4566 & 6.6506 & 7.2150 & 7.6216 & 8.2182 \\ \hline
+7 & 4.3966 & 4.4480 & 4.5044 & 6.9106 & 7.5878 & 8.0202 & 12.3972 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ C=100, \; \mu = 0.01$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 0.0022 & 0.0152 & 0.0568 & 0.2124 & 2.0002 & 2.0034 & 2.1446 \\ \hline
+2 & 2.4826 & 2.5110 & 2.5420 & 2.5766 & 2.6158 & 2.6612 & 2.7130 \\ \hline
+3 & 2.8170 & 2.8582 & 2.9060 & 2.9546 & 3.0166 & 3.0806 & 3.1556 \\ \hline
+4 & 3.1358 & 3.1906 & 3.4740 & 3.5124 & 3.5514 & 3.5926 & 3.6370 \\ \hline
+5 & 3.4738 & 3.5236 & 3.5762 & 3.6302 & 3.6836 & 3.7356 & 3.7868 \\ \hline
+6 & 3.6008 & 3.6412 & 3.6868 & 3.7358 & 3.7868 & 3.8422 & 3.9008 \\ \hline
+7 & 3.8788 & 3.9280 & 3.9818 & 4.0422 & 4.1058 & 4.1590 & 4.1710 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ C=100, \; \mu = 0.001$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 0.0022 & 0.0022 & 0.0022 & 0.0022 & 0.0022 & 0.0022 & 0.0088 \\ \hline
+2 & 2.5272 & 2.5522 & 2.5804 & 2.6124 & 2.6512 & 2.6942 & 2.7466 \\ \hline
+3 & 2.8694 & 2.9042 & 2.9468 & 3.0004 & 3.0688 & 3.1392 & 3.2106 \\ \hline
+4 & 3.2050 & 3.4602 & 3.4958 & 3.5312 & 3.5680 & 3.6070 & 3.6498 \\ \hline
+5 & 3.5012 & 3.5508 & 3.6024 & 3.6538 & 3.7034 & 3.7514 & 3.8000 \\ \hline
+6 & 3.6266 & 3.6652 & 3.7058 & 3.7514 & 3.7978 & 3.8576 & 3.9176 \\ \hline
+7 & 3.9026 & 3.9488 & 3.9982 & 4.0524 & 4.1132 & 4.1604 & 4.1714 \\ \hline
+\end{tabular}
+\end{table}
+
+\newpage
+
+\subsection{Для нелинейного давления}
+Для таблиц возбмем значения: $h = 0.001, \; \tau = 0.00001 \; (\text{то есть }M=1000, \; N=100000)$. Во всех таблицах ниже используется $\varepsilon = 0.001$.
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ \mu = 0.1$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 0.0490 & 1.4169 & 28.7883 & 19.7010 & 59.9882 & 71.1568 & 98.4407 \\ \hline
+2 & 0.3166 & 25.7894 & 25.4718 & 27.8459 & 29.7055 & 41.9335 & 56.2809 \\ \hline
+3 & 14.3412 & 13.8233 & 14.6478 & 16.7671 & 28.2927 & 32.1405 & 46.0831 \\ \hline
+4 & 13.9737 & 13.5182 & 14.3079 & 16.0680 & 18.7971 & 24.3961 & 36.6491 \\ \hline
+5 & 13.6476 & 13.4705 & 14.1104 & 15.7327 & 18.3201 & 23.3447 & 27.7485 \\ \hline
+6 & 13.4488 & 13.3989 & 13.9682 & 15.5406 & 18.0678 & 22.5628 & 26.4941 \\ \hline
+7 & 13.3884 & 13.3194 & 13.8748 & 15.4310 & 17.9259 & 21.9187 & 25.4832 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ \mu = 0.01$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 0.2876 & 15.2863 & 17.5949 & 22.4223 & 30.7638 & 47.5776 & 74.0345 \\ \hline
+2 & 14.8166 & 14.6860 & 16.3518 & 19.4822 & 24.3693 & 35.5518 & 47.2371 \\ \hline
+3 & 14.3700 & 14.2244 & 15.5341 & 18.0515 & 21.8764 & 29.7781 & 39.4579 \\ \hline
+4 & 14.1139 & 13.9091 & 15.0176 & 17.2228 & 20.5412 & 26.7820 & 34.8000 \\ \hline
+5 & 13.9364 & 13.6925 & 14.6796 & 16.7062 & 19.7383 & 24.9748 & 31.3765 \\ \hline
+6 & 13.7950 & 13.5438 & 14.4555 & 16.3779 & 19.2321 & 23.7262 & 28.8905 \\ \hline
+7 & 13.6809 & 13.4436 & 14.3098 & 16.1774 & 20.0755 & 22.7978 & 27.0942 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp] \centering \begin{tabular}{|c * {7}{|c}|} \hline \multicolumn{8}{|c|}{$ \mu = 0.001$} \\ \hline \diagbox{$\rho$}{u} & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+1 & 0.0060 & 15.6322 & 18.9362 & 24.5148 & 37.4329 & 52.7040 & 76.0457 \\ \hline
+2 & 15.0546 & 14.9509 & 16.8859 & 20.3235 & 27.9819 & 37.7078 & 49.5538 \\ \hline
+3 & 14.6086 & 14.4394 & 15.8623 & 18.5651 & 24.6046 & 30.5856 & 40.4756 \\ \hline
+4 & 14.3376 & 14.0938 & 15.2698 & 17.6232 & 22.7567 & 27.0661 & 35.5228 \\ \hline
+5 & 14.1436 & 13.8761 & 14.9154 & 17.1587 & 21.6036 & 25.1397 & 31.8832 \\ \hline
+6 & 13.9854 & 13.7817 & 14.7258 & 17.2518 & 20.7932 & 23.8422 & 29.2051 \\ \hline
+7 & 13.8478 & 13.5966 & 14.5740 & 16.8233 & 20.1678 & 22.8875 & 27.2878 \\ \hline
+\end{tabular}
+\end{table}
+
+\newpage
+
+\subsection{Графики}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{planar_graphics/planar_graphs_C=10_mu=0.1.png}
+    \caption{Это для $ \widetilde{u} = 2 \text{ и } \widetilde{\rho} = 4 $.}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{planar_graphics/planar_graphs_C=10_mu=0.1___4_2.png}
+    \caption{Это для $ \widetilde{u} = 4 \text{ и } \widetilde{\rho} = 2 $.}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{planar_graphics/planar_graphs_C=10_mu=0.1___7_7__time=17=(20).png}
+    \caption{Это для $ \widetilde{u} = 7 \text{ и } \widetilde{\rho} = 7 $.}
+\end{figure}
+
+\subsection{Выводы}
+С увеличением параметров $u$ и $\rho$ время стабилизации решения задачи <<протекния>> увеличивается.
+Чем больше $u$ и $\rho$ (точнее, в случае когда $u$ намного больше $\rho$), тем дольше стабилизируется решение. Увеличение набегающей плотности существенно увеличивает время выхода на стационар.
+
+В отличие от указанного ранее, в данной задаче протекания, чем больше $C$ и чем меньше $\mu$, тем быстрее стабилизируется решение. И наоборот, если $\mu$ маленькое, то схема сходится несколько дольше, хотя параметр вязкости в данном случае оказывает слабое влияние. Наибольшая зависимость времени стабилизации наблюдается относительно параметра $C$, который характеризует сжимаемость, например, при $C=1$ схема очень часто расходится, и чем больше $C$, тем быстрее задача <<протекания>> выходит на стационар.
+
+\end{document}

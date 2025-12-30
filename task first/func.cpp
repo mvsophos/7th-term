@@ -16,7 +16,7 @@ enum class mode_my_mode {
 
 double gamma_ = 1.4;
 double C = 1;
-double mu = 0.1;
+double mu = 0.001;
 
 double zero(double, double, int) {
 	return 0;
@@ -303,7 +303,7 @@ void print_res_V_like_gnu(double *z, double (*f)(double, double, int), double ti
 	}
 	printf("\n");
 }
-
+/*
 // функция правильная, проверена работает для 0 в левом верхнем углу матрицы
 int solver (double *p_half, double *phalf, double *phalf1, double *pprev, int N){ // pprev - это правая часть, и вместе с тем туда пишется решение
 	double buf;
@@ -360,7 +360,67 @@ int solver (double *p_half, double *phalf, double *phalf1, double *pprev, int N)
 		}
 	}
 	return 0;
+} */
+
+// функция правильная, проверена работает для 0 в левом верхнем углу матрицы
+int solver (double *p_half, double *phalf, double *phalf1, double *pprev, int N){ // pprev - это правая часть, и вместе с тем туда пишется решение
+	double buf;
+	bool flag = false;
+	if ((fabs(phalf[0]) < eps) && (fabs(phalf1[0]) < eps)) printf("\nСистема нерешаема!\n\n");
+	else {
+		if (fabs(phalf[0]) < eps) {
+			flag = true;
+			//buf = phalf[0];  phalf[0] = p_half[1]; p_half[1] = buf;
+			phalf[0] = p_half[1]; p_half[1] = 0;
+			buf = phalf1[0]; phalf1[0] = phalf[1]; phalf[1]  = buf;
+			
+			buf = pprev[0];  pprev[0] = pprev[1];  pprev[1] = buf;
+
+			buf = phalf1[1];		// запомнили элемент третий элемент в первой строке
+			phalf1[1] = 0;
+		}
+		
+		if (fabs(phalf[0]) < eps) {
+			printf("Начальный массив имееет фигню\n");
+			return -1;
+		}
+		else {
+			phalf1[0] /= phalf[0];
+			pprev[0] /= phalf[0];
+			if (flag) buf /= phalf[0];
+			phalf[0] = 1;
+		}
+
+		for (int i = 1; i <= N - 1; i++){
+			// p_half[i] -= p_half[i] * phalf[i - 1];
+			pprev[i]  -= p_half[i] * pprev[i - 1];
+			phalf[i]  -= p_half[i] * phalf1[i - 1];
+			p_half[i] = 0;
+			// сейчас элемент p_half[i] = 0
+			if (fabs(phalf[i]) < eps) {
+				printf("Нееееет %d\n", i);
+				return -2;
+			}
+			else {
+				phalf1[i] /= phalf[i];
+				if (fabs(pprev[i]) > eps) pprev[i]  /= phalf[i];
+				else pprev[i] = 0;
+				phalf[i]  =  1;
+			}
+		}
+		for (int i = N - 1; i >= 1; i--){
+			// pprev[i] = f[i]; // запоминаем плотность на прошлом шаге
+			if (fabs(pprev[i]) > eps) pprev[i - 1] -= pprev[i] * phalf1[i - 1];
+			phalf1[i - 1] = 0;
+		}
+
+		if (flag == true) {
+			pprev[0] -= pprev[2] * buf;
+		}
+	}
+	return 0;
 }
+
 
 
 
@@ -499,34 +559,38 @@ int main(int argc, char *argv[]) {
 	double h, tau;			// h - шаг по пространству, tau - шфг по времени
 	double x, time;			// x - длина отрезка (считаем что он равен 1), time - временной отрезок
 	double length_on_space = 1.0, length_on_time = 1.0;
+	int level;				// уровень вложенности. 0 = обычный режим, и это 0, 1 = вложенность и это с 1, 2 начать с 4, а 3 начать с 13. -1 это будет как-бы точное решение
 	mode_my_mode rezh;
 
 	if (!(argc == 7 
-		&& sscanf(argv[1], "%lf", &x) == 1
-		&& sscanf(argv[2], "%lf", &time) == 1
+		&& sscanf(argv[1], "%lf", &C) == 1
+		&& sscanf(argv[2], "%lf", &mu) == 1
 		&& sscanf(argv[3], "%d",  &M) == 1
 		&& sscanf(argv[4], "%d",  &N) == 1
 		&& sscanf(argv[5], "%d",  &rezhim) == 1
-		&& sscanf(argv[6], "%d",  &mode) == 1
-		&& x > eps && time > eps && N >= 1 && M >= 1 
+		&& sscanf(argv[6], "%d",  &level) == 1
+		&& N >= 1 && M >= 1 
 		&& fabs(rezhim - 0.5) < 0.6))
 		{
 			printf("# Usage: ./a.out  x  time  M  N  rezhim  mode\n");
 			return -1;
 		}
 
-	//x = length_on_space;
-	//time = length_on_time;
+	x = length_on_space;
+	time = length_on_time;
+	mode = 7;
 	//rezhim = 1;
 
 	int kakaya_norma = 0;
-	std::cin >> kakaya_norma;
+	//std::cin >> kakaya_norma;
 	
 	//char stroim_graphic_of = 'V';		// эта переменная для того чтобы понять правильно ли задаются преобразования для V
 	char stroim_graphic_of = 'H';
 	
 	h = x / M;
 	tau = time / N;
+
+	//printf("%d %d\n", M, N);
 
 	switch (rezhim) {
 	case 0:
@@ -538,6 +602,9 @@ int main(int argc, char *argv[]) {
 	default:
 		break;
 	}
+
+	N = 10 * N;
+	tau = time / N;
 
 	double res1 = 0, res2 = 0, res3 = 0, res4 = 0, timing = 0;
 	double *H_prev = new double[M];
@@ -559,9 +626,10 @@ int main(int argc, char *argv[]) {
 
 	
 	if (kakaya_norma == 1 || kakaya_norma == 2 || kakaya_norma == 3 || kakaya_norma == 4 || kakaya_norma == 5) {
+		int result;
 		for (int i = 0; i < N; i++) {
 			//set_array_H(H, i * tau, h, M, mode);
-			int result = set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, i, M, mode);
+			result = set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, i, M, mode);
 			if (result != 0) {
 				printf("Плохое решение плотности на шаге %d\n", i);
 				return -1;
@@ -593,6 +661,47 @@ int main(int argc, char *argv[]) {
 			printf("%0.3le,  %0.3le", res1, res2);
 			break;
 		}
+		printf("\n");
+	}
+	else if (kakaya_norma == 0) {
+		int result;
+		for (int i = 0; i < N; i++) {
+			//set_array_H(H, i * tau, h, M, mode);
+			result = set_matrix_H(H_under, H_main, H_above, V_prev, H, H_prev, tau, h, i, M, mode);
+			if (result != 0) {
+				printf("Плохое решение плотности на шаге %d\n", i);
+				return -1;
+			}
+
+			//set_array_V(V, i * tau, h, M + 1, mode);
+			result = set_matrix_V(V_under, V_main, V_above, H, V, H_prev, V_prev, tau, h, M, i, mode, rezh);
+			if (result != 0) {
+				printf("Плохое решение скорости на шаге %d\n", i);
+				return -2;
+			}
+			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
+		}
+		int initial_step = 0, shag = 1;
+		switch (level) {
+		case 0:
+			initial_step = 0; shag = 1;
+			break;
+		case 1:
+			initial_step = 1; shag = 3;
+			break;
+		case 2:
+			initial_step = 4; shag = 9;
+			break;
+		case 3:
+			initial_step = 13; shag = 27;
+			break;
+		case -1:
+			initial_step = 0; shag = 1;
+			set_array_H(H, 1, h, M, mode);
+			break;
+		}
+		for (int i = initial_step; i < M; i += shag) printf("%lf  ", H[i]);
+		printf("\n");
 	}
 	else
 		switch (stroim_graphic_of) {

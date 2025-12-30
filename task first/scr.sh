@@ -2,7 +2,7 @@
 
 g++ func.cpp \
 && \
-echo -e -n "$\mu = $ \n begin{center} \n begin{tabular}{|c|c|c|c|c|} \n \hline \n $ tau backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001" > RESIDUALS.txt
+echo -e -E -n "$\mu = $ \n \begin{center} \n \begin{tabular}{|c|c|c|c|c|} \n \hline \n $ \tau \backslash h$ & 0.1 & 0.01 & 0.001 & 0.0001" > RESIDUALS.txt
 echo \\\\ >> RESIDUALS.txt
 echo "\hline" >> RESIDUALS.txt
 for N in 10 100 1000 10000
@@ -18,13 +18,11 @@ do
                         fi
                         
                         echo -n "&  "                                   >> RESIDUALS.txt
-                        echo -n "$(echo $i | ./a.out 1 1 $M $N 0 7)  "  >> RESIDUALS.txt
+                        echo -n "$(echo $i | ./a.out 100 0.1 $M $N 1 7)  "  >> RESIDUALS.txt
                 done
                 echo \\\\                                                >> RESIDUALS.txt
         done
         echo "\hline"                                                    >> RESIDUALS.txt
 done
-echo -e "\n end{tabular} \n end{center}"                                 >> RESIDUALS.txt
+echo -e -E "\n \end{tabular} \n \end{center}"                                 >> RESIDUALS.txt
 echo "Скрипт закончен"
-
-cat RESIDUALS.txt

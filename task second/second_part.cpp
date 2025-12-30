@@ -19,8 +19,8 @@ enum class number_task {
 };
 
 double gamma_ = 1.4;
-int C = 10;
-double mu = 0.01;
+int C = 1;
+double mu = 0.1;
 
 int M_dpi = 3000;
 
@@ -464,7 +464,7 @@ int main(int argc, char *argv[]) {
 			memcpy(H_prev, H, M * sizeof(double)); memcpy(V_prev, V, (M + 1) * sizeof(double));
 			j += 1;
 
-			if (j % 100 == 0) printf("# %d %le\n", j, r1);
+			//if (j % 100 == 0) printf("# %d %le\n", j, r1);		// РАНЬШЕ БЫЛА ВОТ ЭТА СТРОКА
 		} while (r1 > 0.001);
 		
 		double delta_law = 0, all_sum = 0;
@@ -472,7 +472,8 @@ int main(int argc, char *argv[]) {
 			delta_law += (H_prev[iter] - r (0, (iter + 0.5) * h, mode));
 			all_sum += r(0, (iter + 0.5) * h, mode);
 		}
-		printf("# SHAG = %d, time = %lf, r1 = %le, LAW = %le\n", j, j * tau, r1, delta_law / all_sum);			// первое это время стабилизации, а второе это сама невязка
+		printf("%.4lf\n", j * tau);
+		//printf("# SHAG = %d, time = %lf, r1 = %le, LAW = %le\n", j, j * tau, r1, delta_law / all_sum);			// первое это время стабилизации, а второе это сама невязка
 	}
 	else if (kakaya_norma == 1 || kakaya_norma == 2 || kakaya_norma == 3 || kakaya_norma == 4 || kakaya_norma == 5) {
 		for (int i = 0; i < N; i++) {

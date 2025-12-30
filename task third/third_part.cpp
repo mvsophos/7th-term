@@ -468,7 +468,7 @@ int main(int argc, char *argv[]) {
 			//if (j % 100 == 0) printf("# %d %le\n", j, r1);
 		} while (r1 > epsilon);
 
-		printf("time = %lf\n", tau * j);
+		printf(" %lf\n", tau * j);
 		
 		// double delta_law = 0, all_sum = 0;
 		// for (int iter = 0; iter < M; iter++) {

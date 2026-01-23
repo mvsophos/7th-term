@@ -1,0 +1,90 @@
+(*(*Создаём 3D‑текст*)
+text3D=RegionProduct[BoundaryDiscretizeGraphics[Text["С Днем \n \
+рождения"],_Text,MeshCellStyle->{1->Gray}],Line[{{0},{0.1}}]  \
+(*высота выдавливания:0.1*)];*)
+
+age = 21;
+
+(*1. Создаём 3D-текст с настройками*)
+text3D = 
+  RegionProduct[
+   BoundaryDiscretizeGraphics[
+    Text[Style[ToString[age], White, FontSize -> 12, 
+      FontFamily -> "Times New Roman",(*(*шрифт*)
+      Bold                       (*жирный*)*)]], _Text, 
+    MeshCellStyle -> {}], 
+   Line[{{0}, {0.5}}  (*толщина букв:0.3 (увеличили с 0.1)*)]];
+
+
+
+
+(*1. Параметры свечки*)radius = 0.3;       (*радиус цилиндра*)
+height = 5;        (*высота свечки*)
+HHH = 2; (*высота пламени свечи*)
+cakeheight = 10;
+raddoffire = 0.4; (*радиус пламени свечи*)
+nSpirals = 4;     (*количество спиральных полосок*)
+spiralWidth = 0.08;(*толщина полосок*)
+colorBase = Blue;  (*цвет основы свечки*)
+radiusfor = 10;
+sector = 2 Pi / age;
+colorSpiral = White;  (*цвет полосок*)
+(*2. Создаём цилиндр (основу свечки)*)
+candleBase = Table[
+   Cylinder[{{Cos[i sector] radiusfor, Sin[i sector] radiusfor, 
+      cakeheight}, {Cos[i sector] radiusfor, Sin[i sector] radiusfor, 
+      cakeheight + height}}, radius],
+   {i, 0, age - 1}];
+(*3. Генерируем спиральные полоски*)
+spirals = 
+  Table[Table[
+    ParametricPlot3D[{Cos[jo sector] radiusfor  +  
+       radius*Cos[
+         t + 2 \[Pi] i/
+            nSpirals],(*смещение по углу для каждой спирали*)
+      Sin[jo sector] radiusfor   +   
+       radius*Sin[t + 2 \[Pi] i/nSpirals], 
+      cakeheight + 
+       t*height/(2 \[Pi])                     (*подъём по высоте*)}, \
+{t, 0, 2 \[Pi]},(*один виток спирали*)
+     PlotStyle -> {colorSpiral, 
+       Tube[spiralWidth]                (*делаем линию объёмной*)}],
+    {i, 0, 
+     nSpirals - 1}             (*создаём nSpirals спиралей*)], {jo, 0,
+     age - 1}];
+fire = Table[
+   Graphics3D[{Yellow, Opacity[0.99], Lighting -> "ThreePoint", 
+     EdgeForm[], 
+     Cone[{{Cos[i sector] radiusfor, Sin[i sector] radiusfor, 
+        cakeheight + height + raddoffire + 
+         0.1}, {Cos[i sector] radiusfor, Sin[i sector] radiusfor, 
+        cakeheight + height + HHH + raddoffire + 0.1}}, raddoffire], 
+     Yellow, Opacity[0.99], 
+     Sphere[{Cos[i sector] radiusfor, Sin[i sector] radiusfor, 
+       cakeheight + height + raddoffire}, raddoffire]}], {i, 0, 
+    age - 1}];
+
+
+
+Show[
+ Graphics3D[{Text[
+    Style["С ДНЁМ РОЖДЕНИЯ НАСТЯ!", 25, Bold, Red, 
+     FontFamily -> "MathematicaMono"], {0, 25, 
+     10}  (*координаты в 3D:{x,y,z}*)]}],
+ Graphics3D[{
+   EdgeForm[(*{Thick,Pink}*)],(*розовая обводка для свечки*)
+   Pink, Cylinder[{{0, 0, 0}, {0, 0, 2}}, 12],(*нижний слой*)
+   Magenta, Cylinder[{{0, 0, 2}, {0, 0, 4}}, 12],(*средний слой*)
+   Pink, Cylinder[{{0, 0, 4}, {0, 0, 6}}, 12],(*верхний слой*)
+   Magenta, Cylinder[{{0, 0, 6}, {0, 0, 8}}, 12],(*средний слой*)
+   Pink, Cylinder[{{0, 0, 8}, {0, 0, 10}}, 12]},(*верхний слой*)
+  (*Sphere[{0,0,3.2},0.3](*«свечка» сверху*)},*)
+  Boxed -> False, Lighting -> "Neutral"], 
+ Graphics3D[{FaceForm[White], EdgeForm[White],(*цвет текста*)
+   Translate[(*перемещение в пространстве*)
+    Rotate[text3D, 0, {1, 0, 0}],(*поворот при необходимости*){0, 0, 
+     cakeheight}            (*координаты:{x,y,z}*)]}],
+ (*Graphics3D[{colorBase,candleBase}],spirals,fire,*)
+ 
+ Graphics3D[{colorBase, candleBase}], spirals, fire,
+ Boxed -> False, Axes -> False, PlotRange -> All, ImageSize -> 750]
